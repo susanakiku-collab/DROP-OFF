@@ -4471,11 +4471,11 @@ function renderCastsTable() {
     const tr = document.createElement("tr");
     const actionHtml = isReadonlyUser
       ? `
-        <button class="btn ghost cast-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+        <button class="btn ghost cast-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
       `
       : `
         <button class="btn ghost cast-edit-btn" data-id="${cast.id}">編集</button>
-        <button class="btn ghost cast-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+        <button class="btn ghost cast-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
         <button class="btn danger cast-delete-btn" data-id="${cast.id}">削除</button>
       `;
     tr.innerHTML = `
@@ -4510,14 +4510,7 @@ function renderCastsTable() {
   }
 
   els.castsTableBody.querySelectorAll(".cast-route-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const cast = allCastsCache.find(x => sameDispatchEntityId(x.id || x.cast_id, btn.dataset.id));
-      openGoogleMap(
-        cast?.address || btn.dataset.address || "",
-        cast?.latitude,
-        cast?.longitude
-      );
-    });
+    btn.addEventListener("click", () => openGoogleMap(btn.dataset.address || ""));
   });
 }
 
@@ -4775,7 +4768,7 @@ function renderCastSearchResults() {
         <td>${escapeHtml(cast.memo || "")}</td>
         <td class="actions-cell">
           <button class="btn ghost cast-search-map-btn" data-id="${cast.id}">地図</button>
-          <button class="btn ghost cast-search-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+          <button class="btn ghost cast-search-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
           ${isReadonlyUser ? '' : `<button class="btn ghost cast-search-edit-btn" data-id="${cast.id}">編集へ</button>`}
         </td>
       </tr>
@@ -4794,14 +4787,7 @@ function renderCastSearchResults() {
   });
 
   els.castSearchResultWrap.querySelectorAll(".cast-search-route-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const cast = allCastsCache.find(x => sameDispatchEntityId(x.id || x.cast_id, btn.dataset.id));
-      openGoogleMap(
-        cast?.address || btn.dataset.address || "",
-        cast?.latitude,
-        cast?.longitude
-      );
-    });
+    btn.addEventListener("click", () => openGoogleMap(btn.dataset.address || ""));
   });
 
   if (!isReadonlyUser) {
@@ -11451,15 +11437,144 @@ function setupEvents() {
   els.sendLineBtn?.addEventListener("click", sendDispatchResultToLine);
   els.saveDailyMileageBtn?.addEventListener("click", saveDailyMileageReports);
 
-  els.copyActualTableBtn?.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(els.actualTableWrap?.innerText || "");
-      alert("表をコピーしました");
-    } catch (e) {
-      console.error(e);
-      alert("コピーに失敗しました");
-    }
+  els.copyActualTableBtn?.addEventListener("click", copyActualTableFormatted);
+}
+
+function formatActualCopyDate(dateValue) {
+  const raw = String(dateValue || "").trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [y, m, d] = raw.split("-");
+    return `${y}/${m}/${d}`;
+  }
+  return raw;
+}
+
+function formatActualCopyDistance(distanceValue) {
+  if (distanceValue === null || distanceValue === undefined || distanceValue === "") return "-";
+  const num = Number(distanceValue);
+  if (Number.isFinite(num)) {
+    const body = Number.isInteger(num) ? num.toFixed(0) : num.toFixed(1).replace(/\.0$/, "");
+    return `${body}km`;
+  }
+  const text = String(distanceValue).trim();
+  if (!text) return "-";
+  return /km$/i.test(text) ? text : `${text}km`;
+}
+
+function buildActualTableCopyText() {
+  const items = Array.isArray(currentActualsCache) ? currentActualsCache.filter(Boolean) : [];
+  if (!items.length) return "";
+
+  const hourLabelFn = typeof getHourLabel === "function"
+    ? getHourLabel
+    : (hour => `${Number(hour || 0)}時`);
+  const areaLabelFn = typeof normalizeAreaLabel === "function"
+    ? normalizeAreaLabel
+    : (value => String(value || "無し"));
+  const statusLabelFn = typeof getStatusText === "function"
+    ? getStatusText
+    : (value => {
+        const raw = String(value || "pending").toLowerCase();
+        if (raw === "done") return "完了";
+        if (raw === "cancel") return "キャンセル";
+        return "未完了";
+      });
+
+  const dateLabel = formatActualCopyDate(els.actualDate?.value || els.dispatchDate?.value || "");
+  const lines = [`【実際の送り${dateLabel ? ` ${dateLabel}` : ""}】`, ""];
+
+  const sortedItems = [...items].sort((a, b) => {
+    const hourDiff = Number(a?.actual_hour ?? 0) - Number(b?.actual_hour ?? 0);
+    if (hourDiff !== 0) return hourDiff;
+    const areaDiff = String(areaLabelFn(a?.destination_area || "無し")).localeCompare(String(areaLabelFn(b?.destination_area || "無し")), 'ja');
+    if (areaDiff !== 0) return areaDiff;
+    const nameA = String(a?.person_name || a?.casts?.name || "");
+    const nameB = String(b?.person_name || b?.casts?.name || "");
+    return nameA.localeCompare(nameB, 'ja');
   });
+
+  const hours = [...new Set(sortedItems.map(item => Number(item?.actual_hour ?? 0)))].sort((a, b) => a - b);
+
+  hours.forEach((hour, hourIndex) => {
+    if (hourIndex > 0) lines.push("");
+    lines.push(`■ ${hourLabelFn(hour)}`);
+
+    const hourItems = sortedItems.filter(item => Number(item?.actual_hour ?? 0) === hour);
+    const areaKeys = [...new Set(hourItems.map(item => String(areaLabelFn(item?.destination_area || "無し"))))];
+
+    areaKeys.forEach(area => {
+      lines.push(`【${area || "無し"}】`);
+      hourItems
+        .filter(item => String(areaLabelFn(item?.destination_area || "無し")) === area)
+        .forEach(item => {
+          const name = String(item?.person_name || item?.casts?.name || "-").trim() || "-";
+          const distance = formatActualCopyDistance(item?.distance_km);
+          const status = String(statusLabelFn(item?.status) || "未完了").trim() || "未完了";
+          const note = String(item?.memo || item?.note || "").trim();
+          const body = [`・${name}`, distance !== "-" ? distance : null, status, note || null]
+            .filter(Boolean)
+            .join(" / ");
+          lines.push(body);
+        });
+      lines.push("");
+    });
+
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  });
+
+  return lines.join("\n").trim();
+}
+
+async function copyTextWithFallback(text) {
+  const value = String(text || "");
+  if (!value.trim()) return false;
+
+  try {
+    if (navigator?.clipboard?.writeText && window.isSecureContext) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch (error) {
+    console.warn("clipboard api failed", error);
+  }
+
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = value;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    ta.style.left = "-1000px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    const copied = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return !!copied;
+  } catch (error) {
+    console.warn("textarea fallback failed", error);
+    return false;
+  }
+}
+
+async function copyActualTableFormatted() {
+  const text = buildActualTableCopyText();
+  if (!text) {
+    alert("コピーする実際の送りがありません");
+    return;
+  }
+
+  const copied = await copyTextWithFallback(text);
+  if (copied) {
+    alert("表をコピーしました");
+    return;
+  }
+
+  console.error("actual table copy failed");
+  alert("コピーに失敗しました");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
