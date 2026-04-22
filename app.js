@@ -23,8 +23,103 @@ const backToLoginBtn = document.getElementById("backToLoginBtn");
 const authMessage = document.getElementById("authMessage");
 
 const RECOVERY_FLAG_KEY = "dropoff_password_recovery_pending";
+const PENDING_SIGNUP_KEY = "__DROP_OFF_PENDING_SIGNUP__";
 
 let recoveryMode = false;
+
+function persistWorkspaceTeamId(teamId, userId = "") {
+  const value = String(teamId || "").trim();
+  const safeUserId = String(userId || "").trim();
+  if (!value) return;
+  try { window.localStorage.setItem("dropoff_workspace_team_id", value); } catch (e) {}
+  try { window.localStorage.setItem("current_dropoff_team_id", value); } catch (e) {}
+  try { window.localStorage.setItem("workspaceTeamId", value); } catch (e) {}
+  try { if (safeUserId) window.localStorage.setItem(`dropoff_workspace_team_id_v1_${safeUserId}`, value); } catch (e) {}
+}
+
+function readPendingSignup() {
+  try {
+    const raw = window.localStorage.getItem(PENDING_SIGNUP_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearPendingSignup() {
+  try { window.localStorage.removeItem(PENDING_SIGNUP_KEY); } catch (e) {}
+}
+
+function getPendingSignupForUser(user) {
+  const email = String(user?.email || "").trim().toLowerCase();
+  const pending = readPendingSignup();
+  if (pending && String(pending.email || "").trim().toLowerCase() === email) {
+    return pending;
+  }
+
+  const metaTeam = String(user?.user_metadata?.team_name || "").trim();
+  const metaDisplay = String(user?.user_metadata?.display_name || "").trim();
+  if (email && metaTeam && metaDisplay) {
+    return { email, teamName: metaTeam, displayName: metaDisplay };
+  }
+  return null;
+}
+
+async function userAlreadyHasWorkspace(userId) {
+  const safeUserId = String(userId || "").trim();
+  if (!safeUserId) return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from("dropoff_team_members")
+      .select("team_id")
+      .eq("user_id", safeUserId)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.warn("team membership check failed:", error);
+      return false;
+    }
+
+    const teamId = String(data?.team_id || "").trim();
+    if (teamId) {
+      persistWorkspaceTeamId(teamId, safeUserId);
+      clearPendingSignup();
+      return true;
+    }
+  } catch (error) {
+    console.warn("team membership check exception:", error);
+  }
+  return false;
+}
+
+async function createWorkspaceAfterConfirmedLogin(user) {
+  const safeUserId = String(user?.id || "").trim();
+  if (!safeUserId) return null;
+
+  if (await userAlreadyHasWorkspace(safeUserId)) {
+    return { teamId: window.localStorage.getItem("dropoff_workspace_team_id") || "" };
+  }
+
+  const pending = getPendingSignupForUser(user);
+  const teamName = String(pending?.teamName || "").trim();
+  const displayName = String(pending?.displayName || "").trim();
+  if (!teamName || !displayName) return null;
+
+  const { data, error } = await supabaseClient.rpc("create_dropoff_workspace_for_signup", {
+    p_team_name: teamName,
+    p_display_name: displayName || null,
+  });
+
+  if (error) throw error;
+
+  const teamId = String(data || "").trim();
+  if (!teamId) throw new Error("初回ワークスペースの作成に失敗しました。");
+
+  persistWorkspaceTeamId(teamId, safeUserId);
+  clearPendingSignup();
+  return { teamId, onboarding: true };
+}
 
 function buildDashboardUrl() {
   try {
@@ -240,9 +335,25 @@ async function handleLogin() {
     }
 
     clearRecoveryPending();
+
+    let nextUrl = buildDashboardUrl();
+    try {
+      const user = data?.user || null;
+      const created = await createWorkspaceAfterConfirmedLogin(user);
+      if (created?.teamId) {
+        nextUrl = created?.onboarding
+          ? `dashboard.html?onboarding=1&team_id=${encodeURIComponent(created.teamId)}`
+          : `dashboard.html?team_id=${encodeURIComponent(created.teamId)}`;
+      }
+    } catch (workspaceError) {
+      console.error("workspace create after login failed:", workspaceError);
+      setMessage("ログイン後の初期設定に失敗しました。もう一度ログインしてください。", true);
+      return;
+    }
+
     setMessage("ログイン成功", false);
     console.log("login success:", data);
-    window.location.href = buildDashboardUrl();
+    window.location.href = nextUrl;
   } catch (err) {
     console.error(err);
     setMessage("例外エラー: " + err.message);

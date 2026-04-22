@@ -21,6 +21,7 @@
   const SIGNUP_TEAM_STORAGE_KEY = '__DROP_OFF_SIGNUP_TEAM_ID__';
   const SIGNUP_USER_ID_KEY = '__DROP_OFF_SIGNUP_USER_ID__';
   const SIGNUP_USER_EMAIL_KEY = '__DROP_OFF_SIGNUP_USER_EMAIL__';
+  const PENDING_SIGNUP_KEY = '__DROP_OFF_PENDING_SIGNUP__';
 
   function getWorkspaceCacheKey(userId) {
     return userId ? `dropoff_workspace_team_id_v1_${userId}` : 'dropoff_workspace_team_id_v1';
@@ -40,6 +41,42 @@
     try { window.localStorage.setItem('__DROP_OFF_LAST_TEAM_ID__', normalized); } catch (_) {}
     try { if (userId) window.localStorage.setItem(getWorkspaceCacheKey(userId), normalized); } catch (_) {}
     try { window.__DROP_OFF_CURRENT_TEAM_ID__ = normalized; } catch (_) {}
+  }
+
+  function persistPendingSignup(payload) {
+    const email = String(payload?.email || '').trim().toLowerCase();
+    const teamName = String(payload?.teamName || '').trim();
+    const displayName = String(payload?.displayName || '').trim();
+    if (!email || !teamName || !displayName) return;
+    const data = {
+      email,
+      teamName,
+      displayName,
+      createdAt: Date.now()
+    };
+    try { window.localStorage.setItem(PENDING_SIGNUP_KEY, JSON.stringify(data)); } catch (_) {}
+  }
+
+  function isLikelyDummyEmail(email) {
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized || !normalized.includes('@')) return true;
+
+    const [localPart, domain = ''] = normalized.split('@');
+    const disposableDomains = new Set([
+      'example.com', 'example.jp', 'example.net', 'test.com', 'test.jp', 'dummy.com',
+      'mailinator.com', 'guerrillamail.com', 'tempmail.com', '10minutemail.com',
+      'yopmail.com', 'trashmail.com', 'sharklasers.com', 'fakeinbox.com'
+    ]);
+    const suspiciousLocalParts = new Set([
+      'test', 'test1', 'test123', 'dummy', 'sample', 'example', 'aaa', 'abc', 'user',
+      'demo', 'mail', 'temp', 'tmp'
+    ]);
+
+    if (disposableDomains.has(domain)) return true;
+    if (suspiciousLocalParts.has(localPart)) return true;
+    if (/^(test|dummy|sample|example|temp)[._-]?\d*$/.test(localPart)) return true;
+    if (/^(example|dummy|test)\./.test(domain)) return true;
+    return false;
   }
 
   function setMessage(message, type) {
@@ -69,14 +106,29 @@
     if (lower.includes('not authenticated')) {
       return '登録後の認証情報を取得できませんでした。画面を再読込してもう一度お試しください。';
     }
-    return raw || '登録に失敗しました。';
+    if (lower.includes('error sending confirmation email') || lower.includes('smtp') || lower.includes('internal server error')) {
+      return '確認メールの送信に失敗しました。受信できる有効なメールアドレスで再度お試しください。';
+    }
+    if (lower.includes('invalid email') || lower.includes('email address')) {
+      return 'メールアドレスの形式を確認してください。';
+    }
+    return raw ? `登録に失敗しました: ${raw}` : '登録に失敗しました。';
   }
 
-  async function signUpDropoffUserDirect(email, password) {
+  async function signUpDropoffUserDirect(email, password, teamName, displayName) {
     if (!supabaseClient?.auth?.signUp) {
       throw new Error('Supabase 初期化に失敗しました。config.js と CDN読込を確認してください。');
     }
-    return await supabaseClient.auth.signUp({ email, password });
+    return await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          team_name: String(teamName || '').trim(),
+          display_name: String(displayName || '').trim()
+        }
+      }
+    });
   }
 
   async function createWorkspaceForSignupDirect(teamName, displayName) {
@@ -127,33 +179,27 @@
       return;
     }
 
+    if (isLikelyDummyEmail(email)) {
+      setMessage('受信できる有効なメールアドレスを入力してください。テスト用・ダミーのメールアドレスでは登録できません。', 'error');
+      emailInput?.focus();
+      return;
+    }
+
     setLoading(true);
-    setMessage('アカウントを作成しています...', 'success');
+    setMessage('確認メールを送信しています...', 'success');
 
     try {
-      const signUpResult = await signUpDropoffUserDirect(email, password);
+      persistPendingSignup({ teamName, displayName, email });
+
+      const signUpResult = await signUpDropoffUserDirect(email, password, teamName, displayName);
       if (signUpResult?.error) throw signUpResult.error;
 
-      const signedUpUser = signUpResult?.data?.user || null;
-      let session = signUpResult?.data?.session || null;
-      if (!session) {
-        session = await ensureSession();
-      }
+      try {
+        if (supabaseClient?.auth?.signOut) await supabaseClient.auth.signOut();
+      } catch (_) {}
 
-      if (!session) {
-        setMessage('登録は受け付けました。認証メールが届く設定の場合は、有効化後にログインしてください。', 'success');
-        return;
-      }
-
-      setMessage('ワークスペースを作成しています...', 'success');
-      const workspaceResult = await createWorkspaceForSignupDirect(teamName, displayName);
-      if (workspaceResult?.error) throw workspaceResult.error;
-      if (!workspaceResult?.teamId) throw new Error('team_id を取得できませんでした。');
-
-      persistPreferredWorkspaceTeam(workspaceResult.teamId, session?.user || signedUpUser || null);
-
-      setMessage('登録完了。初期設定へ移動します。', 'success');
-      window.location.href = `dashboard.html?onboarding=1&team_id=${encodeURIComponent(workspaceResult.teamId)}`;
+      setMessage('登録を受け付けました。確認メールを開いて有効化したあと、ログインしてください。ログイン後にワークスペースを作成します。', 'success');
+      passwordInput.value = '';
     } catch (error) {
       console.error('signup failed:', error);
       setMessage(normalizeErrorMessage(error), 'error');
