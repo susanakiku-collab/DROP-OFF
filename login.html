@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROP OFF | ログイン</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="login-card">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:12px;letter-spacing:.12em;color:#9db2d1;">DROP OFF</div>
+        <h2 id="authTitle" style="margin:6px 0 0;">ログイン</h2>
+      </div>
+      <a href="index.html" style="color:#c8d3e5;text-decoration:none;font-size:13px;">トップへ戻る</a>
+    </div>
+
+    <div id="loginPanel">
+      <label>ログインID</label>
+      <input id="loginEmail" type="text" placeholder="登録済みメールアドレス" />
+
+      <label>パスワード</label>
+      <input id="loginPassword" type="password" placeholder="password" />
+
+      <div class="btn-row">
+        <button id="loginBtn">ログイン</button>
+        <button id="openSignupBtn" type="button">招待を受けて初回参加</button>
+      </div>
+      <div style="margin-top:10px;color:#9fb0ca;font-size:13px;line-height:1.7;">
+        新規の方は <a href="signup.html" style="color:#fff;">無料で始める</a> からワークスペースを作成できます。
+      </div>
+    </div>
+
+    <div id="signupPanel" class="hidden">
+      <p style="margin:0 0 12px;color:#c8d3e5;line-height:1.6;">
+        招待されたメールアドレスで初回参加します。登録後、招待情報をもとに DROP OFF の権限と所属が自動反映されます。
+      </p>
+
+      <label>招待されたメールアドレス</label>
+      <input id="signupEmail" type="email" placeholder="招待メールアドレス" />
+
+      <label>新しいパスワード</label>
+      <input id="signupPassword" type="password" placeholder="6文字以上" />
+
+      <label>確認用パスワード</label>
+      <input id="signupPasswordConfirm" type="password" placeholder="もう一度入力" />
+
+      <div class="btn-row">
+        <button id="signupBtn" type="button">初回参加を登録</button>
+        <button id="backToLoginFromSignupBtn" type="button">ログインへ戻る</button>
+      </div>
+    </div>
+
+    <div id="resetPanel" class="hidden">
+      <p style="margin:0 0 12px;color:#c8d3e5;line-height:1.6;">
+        パスワード再設定メールから開かれました。新しいパスワードを入力して更新してください。
+      </p>
+
+      <label>新しいパスワード</label>
+      <input id="newPassword" type="password" placeholder="6文字以上" />
+
+      <label>確認用パスワード</label>
+      <input id="confirmPassword" type="password" placeholder="もう一度入力" />
+
+      <div class="btn-row">
+        <button id="resetPasswordBtn">パスワード更新</button>
+        <button id="backToLoginBtn" type="button">ログインへ戻る</button>
+      </div>
+    </div>
+
+    <p id="authMessage"></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="supabaseService.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROP OFF | 新規登録</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .signup-shell{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+    .signup-card{
+      width:min(100%, 560px);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:22px;
+      box-shadow:0 20px 50px rgba(0,0,0,.35);
+      padding:24px;
+      backdrop-filter:blur(12px);
+    }
+    .signup-head{
+      display:grid;
+      gap:8px;
+      margin-bottom:18px;
+    }
+    .signup-head h1{
+      margin:0;
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+    .signup-head p{
+      margin:0;
+      color:#c8d3e5;
+      line-height:1.7;
+      font-size:14px;
+    }
+    .signup-form{
+      display:grid;
+      gap:14px;
+    }
+    .signup-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .signup-field{
+      display:grid;
+      gap:8px;
+    }
+    .signup-field label{
+      font-size:13px;
+      color:#dbe6f7;
+      font-weight:700;
+    }
+    .signup-field input{
+      width:100%;
+      min-height:46px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      color:#fff;
+      padding:0 14px;
+      outline:none;
+    }
+    .signup-field input:focus{
+      border-color:rgba(47,109,246,.85);
+      box-shadow:0 0 0 3px rgba(47,109,246,.16);
+    }
+    .signup-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .signup-actions button,
+    .signup-actions a{
+      min-height:44px;
+      padding:0 16px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.12);
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      transition:.18s ease;
+      font-weight:700;
+    }
+    .signup-primary{
+      background:linear-gradient(180deg, #2f6df6, #1f4db7);
+      color:#fff;
+      border-color:rgba(47,109,246,.8);
+    }
+    .signup-secondary{
+      background:rgba(255,255,255,.04);
+      color:#dbe6f7;
+    }
+    .signup-actions button:hover,
+    .signup-actions a:hover{
+      transform:translateY(-1px);
+    }
+    .signup-actions button[disabled]{
+      opacity:.65;
+      cursor:default;
+      transform:none;
+    }
+    .signup-message{
+      min-height:24px;
+      margin-top:14px;
+      font-size:14px;
+      line-height:1.6;
+    }
+    .signup-message.error{ color:#ff8f8f; }
+    .signup-message.success{ color:#7be2ab; }
+    .signup-note{
+      margin-top:12px;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      color:#b8c7dd;
+      font-size:13px;
+      line-height:1.7;
+    }
+    @media (max-width: 640px){
+      .signup-card{ padding:18px; }
+      .signup-grid{ grid-template-columns:1fr; }
+      .signup-head h1{ font-size:24px; }
+      .signup-actions{ flex-direction:column; }
+      .signup-actions button,
+      .signup-actions a{ width:100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="signup-shell">
+    <section class="signup-card">
+      <div class="signup-head">
+        <h1>DROP OFF 新規登録</h1>
+        <p>
+          新しいワークスペースを作成し、登録した本人を自動でオーナーに設定します。<br />
+          登録完了後は、そのまま初期設定へ進みます。
+        </p>
+      </div>
+
+      <form id="signupForm" class="signup-form">
+        <div class="signup-grid">
+          <div class="signup-field">
+            <label for="signupTeamName">チーム名 / 会社名</label>
+            <input id="signupTeamName" type="text" placeholder="例: DROP OFF 柏" maxlength="100" />
+          </div>
+          <div class="signup-field">
+            <label for="signupDisplayName">表示名</label>
+            <input id="signupDisplayName" type="text" placeholder="例: 菊池" maxlength="100" />
+          </div>
+        </div>
+
+        <div class="signup-field">
+          <label for="signupEmail">メールアドレス</label>
+          <input id="signupEmail" type="email" placeholder="例: sample@example.com" maxlength="255" autocomplete="email" />
+        </div>
+
+        <div class="signup-field">
+          <label for="signupPassword">パスワード</label>
+          <input id="signupPassword" type="password" placeholder="6文字以上" minlength="6" autocomplete="new-password" />
+        </div>
+
+        <div class="signup-actions">
+          <button id="signupSubmitBtn" class="signup-primary" type="submit">新規登録して開始</button>
+          <a class="signup-secondary" href="login.html">ログイン画面へ戻る</a>
+        </div>
+      </form>
+
+      <div id="signupMessage" class="signup-message"></div>
+
+      <div class="signup-note">
+        無料で開始できます。登録後は起点 → 車両 → 送り先の順で初期設定へ進みます。
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="supabaseService.js"></script>
+  <script src="signup.js"></script>
+</body>
+</html>

@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROP OFF</title>
+  <link rel="stylesheet" href="style.css?v=ui-tidy-v1" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand-wrap">
+        <h1 class="app-title">DROP OFF 🚐🌙</h1>
+        <p class="app-subtitle">AI Route & Dispatch System</p>
+        <div class="app-version">
+        DROP OFF v0.9 beta<br>
+        Build 2026
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="adminHeaderBtn" class="btn ghost hidden">ユーザー管理</button>
+      </div>
+    </header>
+
+    <nav class="main-tabs">
+      <button class="main-tab active" data-tab="homeTab">ホーム</button>
+      <button class="main-tab" data-tab="castsTab">送り先管理</button>
+      <button class="main-tab" data-tab="vehiclesTab">車両</button>
+      <button class="main-tab" data-tab="dailyTab">当日運用</button>
+      <button class="main-tab" data-tab="plansTab">予定表</button>
+      <button class="main-tab" data-tab="actualTab">実際の送り</button>
+      <button class="main-tab" data-tab="settingsTab">設定</button>
+      <button id="platformAdminTabBtn" class="main-tab hidden" data-tab="platformAdminTab">運営者</button>
+      <button id="openManualBtn" class="btn ghost">📘 マニュアル</button>
+    </nav>
+
+    <main class="page-body">
+      <section id="platformAdminForceBanner" class="panel-card hidden" style="margin-bottom:16px;">
+        <div class="action-row" style="justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 6px 0;">運営者強制切替中</h3>
+            <p id="platformAdminForceBannerText" class="soft-text" style="margin:0;">現在 運営者としてチームを表示中です。</p>
+          </div>
+          <div class="inline-actions">
+            <button id="platformAdminBackBtn" class="btn ghost" type="button">運営者モードへ戻る</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ホーム -->
+      <section id="homeTab" class="page-panel active">
+        <section id="homeSetupPriorityCard" class="panel-card home-setup-card home-setup-priority-card">
+          <div class="section-head compact home-setup-priority-head">
+            <div>
+              <h2>新規で作る</h2>
+              <p class="soft-text home-setup-priority-sub">最初にここだけ入れると、DROP OFF がすっと動き出します。</p>
+            </div>
+            <span id="homeSetupLead" class="chip soft">まずは起点から</span>
+          </div>
+          <div class="status-chips">
+            <span class="chip">起点 <span id="homeOriginCount">0</span>件</span>
+            <span class="chip">車両 <span id="homeSetupVehicleCount">0</span>台</span>
+            <span class="chip">送り先 <span id="homeSetupCastCount">0</span>人</span>
+          </div>
+          <p id="homeSetupHint" class="soft-text">新しいチームは、最初に起点を入れると他の画面が自然につながります。</p>
+          <div class="quick-actions home-setup-actions">
+            <button id="homeSetupGoOriginBtn" class="btn primary go-tab-btn" data-go-tab="settingsTab">起点を作る</button>
+            <button id="homeSetupGoVehicleBtn" class="btn ghost go-tab-btn" data-go-tab="vehiclesTab">車両を作る</button>
+            <button id="homeSetupGoCastBtn" class="btn ghost go-tab-btn" data-go-tab="castsTab">送り先を作る</button>
+          </div>
+        </section>
+
+        <div class="panel-grid two-col">
+          <section class="panel-card home-overview-card home-secondary-card">
+            <h2>今日の状況</h2>
+            <div class="status-chips">
+              <span class="chip"><span id="homeCastCount">0</span>人</span>
+              <span class="chip">車両 <span id="homeVehicleCount">0</span>台</span>
+              <span class="chip">Plan <span id="homePlanCount">0</span>件</span>
+              <span class="chip">Actual <span id="homeActualCount">0</span>件</span>
+              <span class="chip">完了 <span id="homeDoneCount">0</span>件</span>
+              <span class="chip">キャンセル <span id="homeCancelCount">0</span>件</span>
+            </div>
+            <div class="quick-actions">
+              <button class="btn primary go-tab-btn" data-go-tab="dailyTab">当日運用へ</button>
+              <button class="btn ghost go-tab-btn" data-go-tab="plansTab">予定表へ</button>
+              <button class="btn ghost go-tab-btn" data-go-tab="actualTab">実際の送りへ</button>
+            </div>
+          </section>
+
+          <section class="panel-card home-secondary-card">
+            <h2>月間（車両別）</h2>
+            <div id="homeMonthlyVehicleList" class="home-monthly-list"></div>
+            <div class="panel-actions">
+              <button id="resetMonthlySummaryBtn" class="btn danger">月間距離/出勤日数リセット</button>
+            </div>
+          </section>
+
+          <section class="panel-card home-secondary-card">
+            <h2>システム概要</h2>
+            <ul class="memo-list">
+              <li>送り先・車両マスタを事前登録</li>
+              <li>予定表で送迎計画を作成</li>
+              <li>当日運用で自動配車・手動調整</li>
+              <li>実際の送りで実績管理</li>
+              <li>月間走行距離・出勤日数を集計</li>
+              <li>LINE連携でドライバーへ通知</li>
+              <li>GoogleMapでルート確認可能</li>
+              
+            </ul>
+          </section>
+
+          <section class="panel-card home-secondary-card">
+            <h2>システム仕様</h2>
+            <ul class="memo-list">
+              <li>住所入力 → Enterで座標取得</li>
+              <li>同一住所はジオコードキャッシュ</li>
+              <li>距離は起点から自動計算</li>
+              <li>シミュレーションで便別試算可能</li>
+              <li>完了送り先は次回配車から除外</li>
+              <li>配車後の車両変更可能</li>
+              <li>CSV出力対応</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <!-- 送り先 -->
+      <section id="castsTab" class="page-panel">
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>送り先管理</h2>
+          </div>
+
+          <div class="action-row" style="margin-bottom:16px;">
+            <button class="btn primary go-tab-btn" data-go-tab="castsTab">送り先</button>
+            <button class="btn ghost go-tab-btn" data-go-tab="castSearchTab">送り先検索</button>
+          </div>
+
+          <div id="castEditorWrap">
+            <div class="section-head">
+              <h2>送り先（事前登録）</h2>
+            </div>
+
+            <div class="form-grid two-col">
+            <div class="field">
+              <label for="castName">氏名</label>
+              <input id="castName" type="text" placeholder="例：佐藤" />
+            </div>
+
+            <div class="field">
+              <label for="castDistanceKm">起点からの推定距離</label>
+              <input id="castDistanceKm" type="text" placeholder="" readonly autocomplete="off" />
+              <div id="castDistanceHint" class="soft-text" style="display:none;"></div>
+            </div>
+
+            <div class="field">
+              <label for="castTravelMinutes">片道予想時間</label>
+              <input id="castTravelMinutes" type="text" placeholder="" readonly autocomplete="off" />
+            </div>
+
+            <div class="field full">
+              <label for="castAddress">住所</label>
+              <input id="castAddress" type="text" placeholder="例：千葉県柏市若柴..." />
+            </div>
+
+            <div class="field">
+              <label for="castArea">方面</label>
+              <input id="castArea" type="text" placeholder="自動判定 / 手修正可" />
+            </div>
+
+            <div class="field">
+              <label for="castMemo">メモ</label>
+              <input id="castMemo" type="text" placeholder="例：新人 / 注意事項など" />
+            </div>
+
+            <div class="field">
+              <label for="castLatLngText">座標貼り付け</label>
+              <input id="castLatLngText" type="text" placeholder="例：35.12345,139.12345" />
+            </div>
+
+            <div class="field">
+              <label for="castPhone">電話</label>
+              <input id="castPhone" type="text" placeholder="任意" />
+            </div>
+
+            <div class="field field-full">
+              <label>座標取得状況</label>
+              <div id="castGeoStatus" class="geo-status idle">未取得 | 住所入力後に「APIで座標取得」または Enter。未取得時は座標貼り付けで手動反映できます</div>
+            </div>
+
+            <input id="castLat" type="hidden" />
+            <input id="castLng" type="hidden" />
+          </div>
+
+          <div class="action-row">
+            <button id="saveCastBtn" class="btn primary">追加/更新</button>
+            <button id="guessAreaBtn" class="btn ghost">住所から方面判定</button>
+            <button id="fetchCastTravelMinutesBtn" class="btn ghost">APIで座標取得</button>
+            <button id="openGoogleMapBtn" class="btn ghost">ルート</button>
+            <button id="cancelEditBtn" class="btn ghost hidden">入力リセット</button>
+            <button id="importCsvBtn" class="btn ghost">インポート</button>
+            <button id="exportCsvBtn" class="btn ghost">送り先CSV</button>
+            <input id="csvFileInput" type="file" accept=".csv,text/csv" class="hidden" />
+          </div>
+          <div id="castApiQuotaText" class="soft-text">API座標取得の残り回数をここに表示します</div>
+          </div>
+
+          <details class="list-toggle-block cast-list-toggle">
+            <summary>送り先一覧を表示</summary>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>氏名</th>
+                    <th>住所</th>
+                    <th>方面</th>
+                    <th>起点距離(km)</th>
+                    <th>メモ</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="castsTableBody"></tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+      </section>
+
+      
+      
+      <!-- 送り先検索 -->
+      <section id="castSearchTab" class="page-panel">
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>送り先管理</h2>
+          </div>
+
+          <div class="action-row" style="margin-bottom:16px;">
+            <button class="btn ghost go-tab-btn" data-go-tab="castsTab">送り先</button>
+            <button class="btn primary go-tab-btn" data-go-tab="castSearchTab">送り先検索</button>
+          </div>
+
+          <div class="section-head">
+            <h2>送り先検索</h2>
+          </div>
+
+          <div class="form-grid three-col">
+            <div class="field">
+              <label for="castSearchName">氏名</label>
+              <input id="castSearchName" type="text" placeholder="部分一致で検索" />
+            </div>
+
+            <div class="field">
+              <label for="castSearchArea">方面</label>
+              <input id="castSearchArea" type="text" placeholder="例：市川 / 柏 / 松戸" />
+            </div>
+
+            <div class="field">
+              <label for="castSearchPhone">電話</label>
+              <input id="castSearchPhone" type="text" placeholder="電話番号で検索" />
+            </div>
+
+            <div class="field full">
+              <label for="castSearchAddress">住所</label>
+              <input id="castSearchAddress" type="text" placeholder="住所の一部で検索" />
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="castSearchRunBtn" class="btn primary">検索</button>
+            <button id="castSearchResetBtn" class="btn ghost">入力リセット</button>
+            <span class="chip">検索結果 <span id="castSearchCount">0</span>件</span>
+          </div>
+
+          <div id="castSearchResultWrap" class="table-wrap"></div>
+        </section>
+      </section>
+
+      <!-- 車両 -->
+      <section id="vehiclesTab" class="page-panel">
+        <section class="panel-card">
+          <div class="section-head">
+            <h2>車両マスタ</h2>
+          </div>
+
+          <div id="vehicleEditorWrap">
+          <div class="form-grid five-col">
+            <div class="field">
+              <label for="vehiclePlateNumber">車両ID</label>
+              <input id="vehiclePlateNumber" type="text" placeholder="例：車A" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleArea">担当方面</label>
+              <input id="vehicleArea" type="text" placeholder="例：柏方面" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleHomeArea">帰宅方面</label>
+              <input id="vehicleHomeArea" type="text" placeholder="例：柏方面" />
+            </div>
+
+            <div class="field two-col">
+              <label for="vehicleHomeLatLngText">帰宅座標貼り付け</label>
+              <input id="vehicleHomeLatLngText" type="text" placeholder="例：35.77265133165276, 139.92975099369397" />
+              <div id="vehicleGeoStatus" class="geo-status idle">座標を「緯度, 経度」の形式で貼り付けると自動反映します</div>
+              <input id="vehicleHomeLat" type="hidden" />
+              <input id="vehicleHomeLng" type="hidden" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleSeatCapacity">乗車可能人員</label>
+              <input id="vehicleSeatCapacity" type="number" min="1" max="10" placeholder="例：4" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleDriverName">ドライバー名</label>
+              <input id="vehicleDriverName" type="text" placeholder="例：田中" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleLineId">LINE ID</label>
+              <input id="vehicleLineId" type="text" placeholder="例：@kikuchi" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleStatus">状態</label>
+              <select id="vehicleStatus">
+                <option value="waiting">待機</option>
+                <option value="running">稼働中</option>
+                <option value="maintenance">整備中</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="vehicleMemo">メモ</label>
+              <input id="vehicleMemo" type="text" placeholder="任意" />
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="saveVehicleBtn" class="btn primary">追加/更新</button>
+            <button id="cancelVehicleEditBtn" class="btn ghost hidden">入力リセット</button>
+            <button id="importVehicleCsvBtn" class="btn ghost">インポート</button>
+            <button id="exportVehicleCsvBtn" class="btn ghost">車両CSV</button>
+            <input id="vehicleCsvFileInput" type="file" accept=".csv,text/csv" class="hidden" />
+          </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ドライバー</th>
+                  <th>車両</th>
+                  <th>担当方面</th>
+                  <th>帰宅方面</th>
+                  <th>定員</th>
+                  <th>月間距離(km)</th>
+                  <th>出勤日数</th>
+                  <th>1日平均(km)</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="vehiclesTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <h3>走行実績エクスポート（ドライバー別・日別）</h3>
+          <div class="form-grid three-col">
+            <div class="field">
+              <label for="mileageReportStartDate">開始日</label>
+              <input id="mileageReportStartDate" type="date" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="mileageReportEndDate">終了日</label>
+              <input id="mileageReportEndDate" type="date" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <div class="action-row">
+                <button id="previewMileageReportBtn" class="btn ghost">一覧表示</button>
+                <button id="exportMileageReportBtn" class="btn primary">CSVエクスポート</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="mileageReportTableWrap" class="table-wrap"></div>
+        </section>
+      </section>
+
+      <!-- 当日運用 -->
+<section id="dailyTab" class="page-panel">
+  <section class="panel-card">
+    <div class="daily-header-row">
+      <h2>当日運用</h2>
+      <div class="daily-top-actions">
+        <div class="field compact">
+          <label for="dispatchDate">日付：</label>
+          <input id="dispatchDate" type="date" />
+        </div>
+        <button id="optimizeBtn" class="btn primary">自動配車</button>
+        <button id="confirmDailyBtn" class="btn ghost">確定（月間へ反映）</button>
+        <button id="clearActualBtn" class="btn danger">Actual全消去</button>
+        <button id="checkAllVehiclesBtn" class="btn ghost">全選択</button>
+        <button id="uncheckAllVehiclesBtn" class="btn danger">全解除</button>
+        <button id="clearManualLastVehicleBtn" class="btn ghost">ラスト便車両解除</button>
+      </div>
+    </div>
+
+    <div class="daily-vehicles-block">
+      <h3>本日使用する車両（配車可能車両）</h3>
+      <div id="dailyVehicleChecklist" class="vehicle-checklist"></div>
+      <div id="manualLastVehicleInfo" class="muted" style="margin-top:10px;">ラスト便車両: なし</div>
+    </div>
+
+        <div class="daily-hybrid-panel">
+      <div class="hybrid-grid hybrid-grid-stack">
+        <details class="hybrid-toggle-card">
+          <summary class="hybrid-toggle-summary">
+            <div class="hybrid-toggle-title-wrap">
+              <span class="hybrid-toggle-icon">📍</span>
+              <div>
+                <div class="hybrid-toggle-title">運用基準</div>
+                <div class="hybrid-toggle-sub">必要なときだけ開く</div>
+              </div>
+            </div>
+            <span class="chip subtle">現実</span>
+          </summary>
+          <section class="hybrid-card hybrid-card-inner">
+            <div id="operationContextSummary" class="hybrid-summary-grid"></div>
+            <div id="operationDiagnosis" class="hybrid-diagnosis muted">診断を計算中です…</div>
+          </section>
+        </details>
+
+        <details class="hybrid-toggle-card">
+          <summary class="hybrid-toggle-summary">
+            <div class="hybrid-toggle-title-wrap">
+              <span class="hybrid-toggle-icon">🎯</span>
+              <div>
+                <div class="hybrid-toggle-title">試算対象</div>
+                <div class="hybrid-toggle-sub">必要なときだけ開く</div>
+              </div>
+            </div>
+            <span class="chip subtle">試算</span>
+          </summary>
+          <section class="hybrid-card hybrid-card-inner">
+            <div class="hybrid-sim-controls">
+              <div class="field compact">
+                <label for="simulationSlotSelect">対象便</label>
+                <select id="simulationSlotSelect"></select>
+              </div>
+              <label class="sim-toggle-row">
+                <input id="simulationIncludePlanInflow" type="checkbox" />
+                <span>前便未処理予定を流入</span>
+              </label>
+              <div class="action-row">
+                <button id="runSimulationBtn" class="btn ghost">この便を試算</button>
+                <button id="runSimulationDispatchBtn" class="btn primary">この便で自動配車を試す</button>
+              </div>
+            </div>
+            <div id="simulationDiagnosis" class="hybrid-diagnosis muted">試算対象便を選択してください</div>
+            <div id="simulationPreview" class="simulation-preview muted">まだ試算していません</div>
+          </section>
+        </details>
+      </div>
+    </div>
+
+    <div id="dispatchSummaryBar" class="dispatch-summary-bar"></div>
+
+    <div class="divider"></div>
+
+    <div class="result-head-row">
+      <h3>配車結果</h3>
+      <div class="action-row">
+        <button id="copyResultBtn" class="btn ghost">結果をコピー</button>
+        <button id="sendLineBtn" class="btn primary">LINE送信</button>
+      </div>
+    </div>
+
+    <div id="dailyDispatchResult" class="dispatch-result-cards"></div>
+
+    <div class="divider"></div>
+
+    <details class="daily-vehicles-block">
+      <summary style="cursor:pointer;font-weight:700;margin-bottom:8px;">車両別 日次走行距離入力（業務終了時）</summary>
+      <div id="dailyMileageInputs" class="daily-mileage-list"></div>
+      <div class="action-row">
+        <button id="saveDailyMileageBtn" class="btn primary">日次走行距離を保存</button>
+      </div>
+    </details>
+  </section>
+</section>
+
+      <!-- 予定表 -->
+      <section id="plansTab" class="page-panel">
+        <section class="panel-card">
+          <div class="daily-header-row">
+            <h2>予定表</h2>
+            <div class="daily-top-actions">
+              <div class="field compact">
+                <label for="planDate">日付：</label>
+                <input id="planDate" type="date" />
+              </div>
+              <button id="exportPlansCsvBtn" class="btn ghost">予定をエクスポート</button>
+              <button id="importPlansCsvBtn" class="btn ghost">予定をインポート</button>
+              <input id="plansCsvFileInput" type="file" accept=".csv,text/csv" class="hidden" />
+              <button id="clearPlansBtn" class="btn danger">予定を全消去</button>
+            </div>
+          </div>
+
+          <div class="form-grid three-col">
+            <div class="field">
+              <label for="planCastSelect">送り先選択</label>
+              <div class="cast-search-wrap">
+                <input id="planCastSelect" type="text" placeholder="候補から選択 / 直接入力" autocomplete="off" />
+                <datalist id="planCastList"></datalist>
+                <div id="planCastSuggest" class="cast-search-suggest hidden"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="planHour">時間</label>
+              <select id="planHour">
+                <option value="0">0時</option>
+                <option value="1">1時</option>
+                <option value="2">2時</option>
+                <option value="3">3時</option>
+                <option value="4">4時</option>
+                <option value="5">5時</option>
+                <option value="6">6時</option>
+                <option value="7">7時</option>
+                <option value="8">8時</option>
+                <option value="9">9時</option>
+                <option value="10">10時</option>
+                <option value="11">11時</option>
+                <option value="12">12時</option>
+                <option value="13">13時</option>
+                <option value="14">14時</option>
+                <option value="15">15時</option>
+                <option value="16">16時</option>
+                <option value="17">17時</option>
+                <option value="18">18時</option>
+                <option value="19">19時</option>
+                <option value="20">20時</option>
+                <option value="21">21時</option>
+                <option value="22">22時</option>
+                <option value="23">23時</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="planDistanceKm">距離上書き(km)</label>
+              <input id="planDistanceKm" type="number" step="0.1" placeholder="例：22" />
+            </div>
+
+            <div class="field full">
+              <label for="planAddress">送り先住所</label>
+              <input id="planAddress" type="text" placeholder="送り先住所が入ります" />
+            </div>
+
+            <div class="field">
+              <label for="planArea">方面</label>
+              <input id="planArea" type="text" placeholder="自動判定 / 手修正可" />
+            </div>
+
+            <div class="field">
+              <label for="planNote">メモ</label>
+              <input id="planNote" type="text" placeholder="例：同乗 / 注意事項など" />
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="savePlanBtn" class="btn primary">追加/更新</button>
+            <button id="guessPlanAreaBtn" class="btn ghost">住所から方面判定</button>
+            <button id="cancelPlanEditBtn" class="btn ghost">入力リセット</button>
+          </div>
+
+          <h3>時間帯 × 方面 一覧</h3>
+          <div id="plansTimeAreaMatrix" class="table-wrap"></div>
+
+          <div class="divider"></div>
+
+          <details class="list-toggle-block">
+            <summary>時間帯別の一覧を表示</summary>
+            <div id="plansGroupedTable" class="table-wrap"></div>
+          </details>
+        </section>
+      </section>
+
+      <!-- 実際の送り -->
+      <section id="actualTab" class="page-panel">
+        <section class="panel-card">
+          <div class="daily-header-row">
+            <h2>実際の送り</h2>
+            <div class="daily-top-actions">
+              <div class="field compact">
+                <label for="actualDate">日付：</label>
+                <input id="actualDate" type="date" />
+              </div>
+              <button id="addSelectedPlanBtn" class="btn ghost">予定から追加</button>
+              <button id="copyActualTableBtn" class="btn ghost">表をコピー</button>
+            </div>
+          </div>
+
+          <div class="form-grid three-col">
+            <div class="field">
+              <label for="planSelect">予定から選択</label>
+              <select id="planSelect">
+                <option value="">予定から選択</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="castSelect">送り先選択</label>
+              <div class="cast-search-wrap">
+                <input id="castSelect" type="text" placeholder="候補から選択 / 直接入力" autocomplete="off" />
+                <datalist id="castList"></datalist>
+                <div id="castSuggest" class="cast-search-suggest hidden"></div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="actualHour">時間</label>
+              <select id="actualHour">
+                <option value="0">0時</option>
+                <option value="1">1時</option>
+                <option value="2">2時</option>
+                <option value="3">3時</option>
+                <option value="4">4時</option>
+                <option value="5">5時</option>
+                <option value="6">6時</option>
+                <option value="7">7時</option>
+                <option value="8">8時</option>
+                <option value="9">9時</option>
+                <option value="10">10時</option>
+                <option value="11">11時</option>
+                <option value="12">12時</option>
+                <option value="13">13時</option>
+                <option value="14">14時</option>
+                <option value="15">15時</option>
+                <option value="16">16時</option>
+                <option value="17">17時</option>
+                <option value="18">18時</option>
+                <option value="19">19時</option>
+                <option value="20">20時</option>
+                <option value="21">21時</option>
+                <option value="22">22時</option>
+                <option value="23">23時</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="actualDistanceKm">距離上書き(km)</label>
+              <input id="actualDistanceKm" type="number" step="0.1" placeholder="例：22" />
+            </div>
+
+            <div class="field">
+              <label for="actualStatus">状態</label>
+              <select id="actualStatus">
+                <option value="pending">未完了</option>
+                <option value="done">完了</option>
+                <option value="cancel">キャンセル</option>
+              </select>
+            </div>
+
+            <div class="field full">
+              <label for="actualAddress">送り先住所</label>
+              <input id="actualAddress" type="text" placeholder="送り先住所が入ります" />
+            </div>
+
+            <div class="field">
+              <label for="actualArea">方面</label>
+              <input id="actualArea" type="text" placeholder="自動判定 / 手修正可" />
+            </div>
+
+            <div class="field">
+              <label for="actualNote">メモ</label>
+              <input id="actualNote" type="text" placeholder="例：同乗 / 注意事項など" />
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="saveActualBtn" class="btn primary">追加/更新</button>
+            <button id="guessActualAreaBtn" class="btn ghost">住所から方面判定</button>
+            <button id="cancelActualEditBtn" class="btn ghost">入力リセット</button>
+          </div>
+
+          <h3>時間帯 × 方面 一覧</h3>
+          <div id="actualTimeAreaMatrix" class="table-wrap"></div>
+
+          <div class="divider"></div>
+
+          <details class="list-toggle-block">
+            <summary>時間帯別の一覧を表示</summary>
+            <div id="actualTableWrap" class="table-wrap"></div>
+          </details>
+        </section>
+      </section>
+
+      <div id="addFromPlansDialog" class="dialog-backdrop hidden">
+        <div class="dialog-card plan-picker-dialog" role="dialog" aria-modal="true" aria-labelledby="addFromPlansDialogTitle">
+          <div class="dialog-head">
+            <div>
+              <h3 id="addFromPlansDialogTitle">予定から追加</h3>
+              <div id="addFromPlansDateLabel" class="muted"></div>
+            </div>
+            <button id="addFromPlansCloseBtn" class="btn ghost" type="button">閉じる</button>
+          </div>
+          <div id="addFromPlansEmpty" class="muted hidden">追加できる予定がありません</div>
+          <div id="addFromPlansList" class="plan-picker-list"></div>
+          <div class="dialog-actions">
+            <button id="addFromPlansCancelBtn" class="btn ghost" type="button">キャンセル</button>
+            <button id="addFromPlansConfirmBtn" class="btn primary" type="button">選択分を追加</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 設定 -->
+      <section id="settingsTab" class="page-panel">
+        <section class="panel-card">
+          <h2>設定</h2>
+
+          <div class="form-grid three-col">
+            <div class="field">
+              <label for="userEmail">ログイン中ユーザー</label>
+              <input id="userEmail" type="text" readonly />
+            </div>
+
+            <div class="field">
+              <label for="userRoleText">現在の権限</label>
+              <input id="userRoleText" type="text" value="利用者" readonly />
+            </div>
+
+            <div class="field">
+              <label for="currentTeamText">所属チーム</label>
+              <input id="currentTeamText" type="text" value="-" readonly />
+            </div>
+
+            <div class="field">
+              <label for="originLabelText">現在の起点</label>
+              <input id="originLabelText" type="text" value="起点" readonly />
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="planSummarySection">
+            <h3>現在のプラン</h3>
+            <p class="soft-text">チーム単位のプラン情報です。現在は起点・車両・送り先の上限チェックと、CSV機能のPaid制御が有効です。</p>
+
+            <div class="form-grid three-col">
+              <div class="field">
+                <label for="planTypeText">現在のプラン</label>
+                <input id="planTypeText" type="text" value="読込中..." readonly />
+              </div>
+
+              <div class="field">
+                <label for="planMembersText">利用人数上限</label>
+                <input id="planMembersText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planOriginsText">起点 使用数 / 上限</label>
+                <input id="planOriginsText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planVehiclesText">車両 使用数 / 上限</label>
+                <input id="planVehiclesText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planCastsText">送り先 使用数 / 上限</label>
+                <input id="planCastsText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planGoogleApiText">GoogleMap API配車</label>
+                <input id="planGoogleApiText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planBackupText">バックアップ / 復元</label>
+                <input id="planBackupText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planCsvText">CSV入出力</label>
+                <input id="planCsvText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planBillingStatusText">課金状態</label>
+                <input id="planBillingStatusText" type="text" value="-" readonly />
+              </div>
+
+              <div class="field">
+                <label for="planBillingPeriodText">有効期限 / 次回更新</label>
+                <input id="planBillingPeriodText" type="text" value="-" readonly />
+              </div>
+            </div>
+
+            <div class="action-row" style="margin-top:16px;">
+              <button id="startPaidCheckoutBtn" class="btn primary" type="button">Paidを申し込む</button>
+              <button id="openBillingPortalBtn" class="btn ghost hidden" type="button">請求管理 / 解約</button>
+              <button id="refreshPlanInfoBtn" class="btn ghost" type="button">プランを再読込</button>
+            </div>
+            <p id="planCheckoutStatusText" class="soft-text" style="margin-top:10px;">課金を開始すると Stripe の決済画面へ移動します。反映後はプランを再読込してください。</p>
+          </div>
+
+
+          <details id="userManagementSection" class="list-toggle-block hidden settings-fold-block">
+            <summary>ユーザー管理</summary>
+            <div class="settings-fold-inner">
+              <p class="soft-text">オーナー専用です。一度ログインしたユーザーが一覧に表示されます。ここで表示名・権限・有効状態を管理します。</p>
+
+              <div class="action-row">
+                <button id="refreshProfilesBtn" class="btn ghost">一覧更新</button>
+              </div>
+
+              <div id="profilesTableWrap" class="table-wrap"></div>
+            </div>
+          </details>
+
+          <details id="invitationManagementSection" class="list-toggle-block hidden settings-fold-block">
+            <summary>ユーザー招待</summary>
+            <div class="settings-fold-inner">
+              <p class="soft-text">招待制で運用します。オーナーは admin / user を招待でき、管理者は user のみ招待できます。第1段階では招待レコードを作成し、状態を管理します。</p>
+
+              <div class="form-grid two-col">
+                <div class="field">
+                  <label for="inviteEmailInput">招待先メールアドレス</label>
+                  <input id="inviteEmailInput" type="email" placeholder="example@email.com" />
+                </div>
+
+                <div class="field">
+                  <label for="inviteDisplayNameInput">表示名</label>
+                  <input id="inviteDisplayNameInput" type="text" placeholder="例: 田中 太郎" />
+                </div>
+
+                <div class="field">
+                  <label for="inviteRoleSelect">招待権限</label>
+                  <select id="inviteRoleSelect">
+                    <option value="user">user</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="inviteTeamSelect">所属チーム</label>
+                  <select id="inviteTeamSelect">
+                    <option value="">チームを読込中...</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="action-row">
+                <button id="sendInvitationBtn" class="btn primary">招待を登録</button>
+                <button id="refreshInvitationsBtn" class="btn ghost">招待一覧更新</button>
+              </div>
+
+              <p id="inviteStatusText" class="soft-text">pending / accepted / expired / revoked を管理します。</p>
+              <div id="invitationsTableWrap" class="table-wrap"></div>
+            </div>
+          </details>
+
+          <div id="originManagementSection">
+          <h3>起点管理</h3>
+          <p class="soft-text">起点は5件まで保存できます。使いたい起点を選ぶと、以後の距離計算・地図・配車の基準に反映されます。</p>
+
+          <div class="form-grid two-col">
+            <div class="field">
+              <label for="originSlotSelect">保存枠</label>
+              <select id="originSlotSelect">
+                <option value="1">起点1</option>
+                <option value="2">起点2</option>
+                <option value="3">起点3</option>
+                <option value="4">起点4</option>
+                <option value="5">起点5</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="originNameInput">起点名</label>
+              <input id="originNameInput" type="text" placeholder="例: 柏駅西口" />
+            </div>
+
+            <div class="field">
+              <label for="originAddressInput">住所</label>
+              <input id="originAddressInput" type="text" placeholder="住所から座標を取得できます" />
+            </div>
+
+            <div class="field">
+              <label for="originLatLngInput">緯度,経度</label>
+              <input id="originLatLngInput" type="text" placeholder="35.8623, 139.9711 または Google Maps URL" />
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="openOriginGoogleMapBtn" class="btn ghost">GoogleMapで開く</button>
+            <button id="fetchOriginLatLngBtn" class="btn ghost">APIで座標取得</button>
+            <button id="saveOriginBtn" class="btn primary">この枠に保存</button>
+            <button id="useOriginDraftBtn" class="btn ghost">入力中の起点を使う</button>
+            <button id="cancelOriginEditBtn" class="btn ghost hidden">編集をやめる</button>
+          </div>
+
+          <p class="soft-text">住所から GoogleMap を開いて位置を確認し、座標または Google Maps のURLを貼り付けて保存できます。送り先管理では距離と時間を固定保存せず、現在の起点から都度再計算します。</p>
+          <p id="originStatusText" class="soft-text">現在の起点: 起点</p>
+          <div id="originSlotsWrap" class="table-wrap"></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="dataManagementSection">
+          <h3>データ管理</h3>
+          <div class="action-row">
+            <button id="exportAllBtn" class="btn ghost">エクスポート</button>
+            <button id="importAllBtn" class="btn ghost">インポート</button>
+            <input id="importAllFileInput" type="file" accept=".json,application/json" class="hidden" />
+          </div>
+          <p class="soft-text">エクスポートとインポートは使用頻度が低いため、設定タブ内にまとめています。</p>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="accountManagementSection">
+            <h3>アカウント</h3>
+            <div class="action-row">
+              <button id="logoutBtn" class="btn danger">ログアウト</button>
+            </div>
+          </div>
+
+          <div id="ownerDangerZone">
+            <div class="divider"></div>
+
+            <h3>システム管理</h3>
+            <div class="action-row">
+              <button id="resetCastsBtn" class="btn danger">送り先全データ消去</button>
+              <button id="resetVehiclesBtn" class="btn danger">車両全データ消去</button>
+              <button id="dangerResetBtn" class="btn danger">全データ消去</button>
+            </div>
+          </div>
+
+          <div id="historySection">
+            <div class="divider"></div>
+
+            <h3>履歴</h3>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- 運営者 -->
+      <section id="platformAdminTab" class="page-panel">
+        <section class="panel-card">
+          <h2>運営者モード</h2>
+          <p class="soft-text">運営者だけが表示できます。全チーム一覧、チーム詳細、強制切替、停止 / 再開、バックアップ / 復元、チーム削除を管理できます。</p>
+
+          <div id="platformAdminSummaryGrid" class="platform-admin-summary-grid">
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">全チーム</div>
+              <div id="platformAdminSummaryTotalTeams" class="platform-admin-summary-value">0</div>
+            </div>
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">表示中</div>
+              <div id="platformAdminSummaryVisibleTeams" class="platform-admin-summary-value">0</div>
+            </div>
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">停止中</div>
+              <div id="platformAdminSummarySuspendedTeams" class="platform-admin-summary-value">0</div>
+            </div>
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">表示メンバー</div>
+              <div id="platformAdminSummaryVisibleMembers" class="platform-admin-summary-value">0</div>
+            </div>
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">表示車両</div>
+              <div id="platformAdminSummaryVisibleVehicles" class="platform-admin-summary-value">0</div>
+            </div>
+            <div class="platform-admin-summary-card">
+              <div class="platform-admin-summary-label">表示送り先</div>
+              <div id="platformAdminSummaryVisibleCasts" class="platform-admin-summary-value">0</div>
+            </div>
+          </div>
+
+          <div class="platform-admin-filter-row">
+            <label class="platform-admin-filter-field">
+              <span>検索</span>
+              <input id="platformAdminSearchInput" type="text" placeholder="チーム名 / ownerメールで検索" />
+            </label>
+            <label class="platform-admin-filter-field">
+              <span>状態</span>
+              <select id="platformAdminStatusFilter">
+                <option value="all">すべて</option>
+                <option value="active">稼働中</option>
+                <option value="suspended">停止中</option>
+              </select>
+            </label>
+            <div class="action-row">
+              <button id="refreshPlatformAdminTeamsBtn" class="btn ghost">チーム一覧更新</button>
+            </div>
+          </div>
+
+          <div id="platformAdminStatusText" class="soft-text">全チームを読込中です...</div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>チーム名</th>
+                  <th>状態</th>
+                  <th>プラン</th>
+                  <th>オーナー</th>
+                  <th>車両</th>
+                  <th>送り先</th>
+                  <th>更新</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="platformAdminTeamsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="platformAdminDetailWrap">
+            <h3>チーム詳細</h3>
+            <div id="platformAdminDetailEmpty" class="soft-text">チームを選ぶと詳細が表示されます。</div>
+            <div id="platformAdminDetailContent" class="hidden">
+              <div class="status-chips">
+                <span class="chip">チーム <span id="platformAdminDetailTeamName">-</span></span>
+                <span class="chip">状態 <span id="platformAdminDetailStatus">-</span></span>
+                <span class="chip">ユーザー <span id="platformAdminDetailMembersCount">0</span>人</span>
+                <span class="chip">車両 <span id="platformAdminDetailVehiclesCount">0</span>台</span>
+                <span class="chip">送り先 <span id="platformAdminDetailCastsCount">0</span>人</span>
+                <span class="chip">起点 <span id="platformAdminDetailOriginsCount">0</span>件</span>
+                <span class="chip">配車 <span id="platformAdminDetailDispatchesCount">0</span>件</span>
+              </div>
+
+              <div class="action-row" style="margin-top:12px;">
+                <button id="switchPlatformTeamBtn" class="btn ghost">このチームへ切替</button>
+                <button id="suspendPlatformTeamBtn" class="btn danger">停止</button>
+                <button id="resumePlatformTeamBtn" class="btn primary">再開</button>
+                <button id="exportPlatformTeamBackupBtn" class="btn ghost">バックアップ出力</button>
+                <button id="importPlatformTeamBackupBtn" class="btn ghost">バックアップ復元</button>
+                <button id="deletePlatformTeamBtn" class="btn danger">チーム削除</button>
+                <input id="importPlatformTeamBackupInput" type="file" accept=".json,application/json" class="hidden" />
+              </div>
+
+              <p id="platformAdminActionStatusText" class="soft-text">選択中チームに対して、強制切替 / バックアップ / 復元 / チーム削除を実行できます。</p>
+              <p id="platformAdminDetailMeta" class="soft-text">-</p>
+
+              <div class="card" style="margin:12px 0;">
+                <div class="section-head compact" style="margin-bottom:8px;">
+                  <div>
+                    <h3 style="margin:0;">チーム名変更</h3>
+                    <p class="soft-text" style="margin:4px 0 0 0;">運営者だけが、このチームの表示名を変更できます。</p>
+                  </div>
+                </div>
+                <div class="action-row" style="align-items:end; gap:8px; flex-wrap:wrap;">
+                  <label style="display:flex; flex-direction:column; gap:4px; min-width:260px; flex:1;">
+                    <span class="soft-text">チーム名</span>
+                    <input id="platformAdminTeamNameInput" type="text" maxlength="80" placeholder="チーム名" />
+                  </label>
+                  <button id="savePlatformAdminTeamNameBtn" class="btn primary" type="button" disabled>チーム名を保存</button>
+                </div>
+                <p id="platformAdminTeamNameStatusText" class="soft-text" style="margin:8px 0 0 0;">チームを選ぶと編集できます。</p>
+              </div>
+
+              <div class="card" style="margin:12px 0;">
+                <div class="section-head compact" style="margin-bottom:8px;">
+                  <div>
+                    <h3 style="margin:0;">プラン切替</h3>
+                    <p class="soft-text" style="margin:4px 0 0 0;">運営者だけが、このチームを free / Paid へ切り替えできます。</p>
+                  </div>
+                </div>
+                <div class="form-grid three-col">
+                  <div class="field">
+                    <label for="platformAdminDetailPlanType">現在のプラン</label>
+                    <input id="platformAdminDetailPlanType" type="text" value="-" readonly />
+                  </div>
+                  <div class="field">
+                    <label for="platformAdminDetailPlanLimits">上限</label>
+                    <input id="platformAdminDetailPlanLimits" type="text" value="-" readonly />
+                  </div>
+                  <div class="field">
+                    <label for="platformAdminDetailPlanFeatures">機能</label>
+                    <input id="platformAdminDetailPlanFeatures" type="text" value="-" readonly />
+                  </div>
+                </div>
+                <div class="action-row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
+                  <button id="platformAdminSetFreePlanBtn" class="btn ghost" type="button" disabled>free にする</button>
+                  <button id="platformAdminSetPaidPlanBtn" class="btn primary" type="button" disabled>Paid にする</button>
+                </div>
+                <p id="platformAdminPlanStatusText" class="soft-text" style="margin:8px 0 0 0;">チームを選ぶと切替できます。</p>
+              </div>
+
+              <div class="platform-admin-detail-grid">
+                <div class="platform-admin-detail-card">
+                  <div class="platform-admin-detail-label">owner</div>
+                  <div id="platformAdminDetailOwnerCount" class="platform-admin-detail-value">0</div>
+                </div>
+                <div class="platform-admin-detail-card">
+                  <div class="platform-admin-detail-label">admin</div>
+                  <div id="platformAdminDetailAdminCount" class="platform-admin-detail-value">0</div>
+                </div>
+                <div class="platform-admin-detail-card">
+                  <div class="platform-admin-detail-label">user</div>
+                  <div id="platformAdminDetailUserCount" class="platform-admin-detail-value">0</div>
+                </div>
+                <div class="platform-admin-detail-card">
+                  <div class="platform-admin-detail-label">無効</div>
+                  <div id="platformAdminDetailInactiveCount" class="platform-admin-detail-value">0</div>
+                </div>
+                <div class="platform-admin-detail-card">
+                  <div class="platform-admin-detail-label">更新</div>
+                  <div id="platformAdminDetailUpdatedAt" class="platform-admin-detail-value platform-admin-detail-value-small">-</div>
+                </div>
+              </div>
+
+              <div id="platformAdminDetailFlags" class="platform-admin-flag-row"></div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>表示名</th>
+                      <th>メール</th>
+                      <th>権限</th>
+                      <th>状態</th>
+                    </tr>
+                  </thead>
+                  <tbody id="platformAdminMembersTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="platformAdminOrphanWrap">
+            <div class="section-head compact">
+              <div>
+                <h3>所属なしユーザー整理</h3>
+                <p class="soft-text">チーム削除後などに残ったログインアカウント候補を確認し、必要なら完全削除します。</p>
+              </div>
+              <div class="inline-actions">
+                <button id="refreshPlatformAdminOrphansBtn" class="btn ghost" type="button">候補更新</button>
+              </div>
+            </div>
+            <p id="platformAdminOrphanStatusText" class="soft-text">候補を読込中です...</p>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>表示名</th>
+                    <th>メール</th>
+                    <th>理由</th>
+                    <th>更新</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="platformAdminOrphanTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="config.js"></script>
+  <script src="format.js"></script>
+  <script src="time.js"></script>
+  <script src="utils.js"></script>
+  <script src="storage.js"></script>
+  <script src="geo.js"></script>
+  <script src="grouping.js"></script>
+  <script src="renderSchedule.js"></script>
+  <script src="renderActual.js"></script>
+  <script src="copyLine.js"></script>
+  <script src="supabaseService.js"></script>
+  <script src="authService.js"></script>
+  <script src="simulation.js"></script>
+  <script src="lastTrip.js"></script>
+  <script src="dispatchCore.js"></script>
+  <script src="dashboard.js?v=portalfix_route_restore2_24h"></script>
+</body>
+</html>

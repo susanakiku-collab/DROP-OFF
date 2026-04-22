@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROP OFF マニュアル</title>
+  <style>
+    :root{
+      --bg:#061120;
+      --bg2:#08192f;
+      --card:rgba(10,20,38,.88);
+      --line:rgba(126,165,255,.18);
+      --text:#eef5ff;
+      --muted:#b8c7df;
+      --blue:#4d8dff;
+      --blue2:#6fb4ff;
+      --green:#39d7a5;
+      --warn:#ffd166;
+      --shadow:0 14px 36px rgba(0,0,0,.28);
+      --radius:22px;
+      --max:1180px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(52,103,255,.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(0,212,255,.10), transparent 24%),
+        linear-gradient(180deg, #030b15 0%, var(--bg) 46%, #050d19 100%);
+      line-height:1.75;
+    }
+    a{color:inherit}
+    .manual-actions{
+      position:sticky;
+      top:0;
+      z-index:30;
+      backdrop-filter:blur(10px);
+      background:rgba(3,11,21,.72);
+      border-bottom:1px solid rgba(126,165,255,.12);
+    }
+    .manual-actions-inner{
+      width:min(calc(100% - 32px), var(--max));
+      margin:0 auto;
+      padding:12px 0;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:10px;
+    }
+    .home-btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:11px 16px;
+      border-radius:999px;
+      background:linear-gradient(135deg, rgba(77,141,255,.94), rgba(111,180,255,.88));
+      color:#04111f;
+      font-weight:700;
+      box-shadow:0 10px 22px rgba(0,0,0,.22);
+    }
+    .home-btn.secondary{
+      background:rgba(7,16,29,.72);
+      color:#eef5ff;
+      border:1px solid rgba(126,165,255,.18);
+      box-shadow:none;
+    }
+    .wrap{
+      width:min(calc(100% - 32px), var(--max));
+      margin:0 auto;
+      padding:28px 0 72px;
+    }
+    .hero{
+      background:linear-gradient(135deg, rgba(17,33,59,.96), rgba(6,17,33,.92));
+      border:1px solid var(--line);
+      border-radius:28px;
+      padding:28px;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:auto -80px -80px auto;
+      width:240px;
+      height:240px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(79,141,255,.24), transparent 68%);
+      pointer-events:none;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 12px;
+      border-radius:999px;
+      border:1px solid rgba(111,180,255,.26);
+      color:#d9e8ff;
+      font-size:13px;
+      background:rgba(9,19,35,.58);
+    }
+    h1{
+      margin:14px 0 8px;
+      font-size:clamp(28px, 4vw, 42px);
+      line-height:1.15;
+    }
+    .lead{
+      margin:0;
+      color:var(--muted);
+      font-size:16px;
+      max-width:820px;
+    }
+    .hero-grid{
+      margin-top:20px;
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+    }
+    .mini-card{
+      background:rgba(7,16,29,.74);
+      border:1px solid var(--line);
+      border-radius:20px;
+      padding:16px 18px;
+    }
+    .mini-card h3{
+      margin:0 0 8px;
+      font-size:16px;
+    }
+    .mini-card p,
+    .mini-card li{color:var(--muted); margin:0}
+    .mini-card ul{margin:0; padding-left:18px}
+    .nav{
+      margin:22px 0 0;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+    .nav a{
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(7,16,29,.62);
+      color:#f3f8ff;
+      font-size:14px;
+    }
+    .note{
+      margin-top:16px;
+      padding:12px 14px;
+      border-radius:16px;
+      background:rgba(57,215,165,.09);
+      border:1px solid rgba(57,215,165,.16);
+      color:#dcfff1;
+      font-size:14px;
+    }
+    section.screen{
+      margin-top:24px;
+      background:linear-gradient(180deg, rgba(10,20,38,.90), rgba(7,15,28,.90));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .section-head{
+      padding:24px 24px 8px;
+    }
+    .section-num{
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:999px;
+      background:rgba(77,141,255,.13);
+      border:1px solid rgba(77,141,255,.28);
+      color:#dcebff;
+      font-size:13px;
+      margin-bottom:10px;
+    }
+    .section-head h2{
+      margin:0;
+      font-size:28px;
+      line-height:1.2;
+    }
+    .section-head p{
+      margin:10px 0 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .content{
+      padding:0 24px 24px;
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:22px;
+      align-items:start;
+    }
+    .panel{
+      background:rgba(6,13,24,.62);
+      border:1px solid rgba(126,165,255,.12);
+      border-radius:18px;
+      padding:16px 18px;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      font-size:16px;
+    }
+    .panel ul,
+    .panel ol{margin:0; padding-left:18px}
+    .panel li{margin:6px 0; color:var(--muted)}
+    .shot{
+      background:rgba(4,9,18,.66);
+      border:1px solid rgba(126,165,255,.14);
+      border-radius:20px;
+      padding:14px;
+    }
+    .shot img{
+      width:100%;
+      display:block;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.05);
+      box-shadow:0 10px 28px rgba(0,0,0,.24);
+    }
+    .caption{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .badge-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid rgba(126,165,255,.16);
+      background:rgba(11,24,43,.76);
+      color:#d8e8ff;
+    }
+    .top-link{
+      margin-top:22px;
+      text-align:right;
+    }
+    .top-link a{
+      text-decoration:none;
+      color:#cfe3ff;
+      font-size:14px;
+    }
+    footer{
+      margin-top:26px;
+      color:#9ab0cf;
+      text-align:center;
+      font-size:13px;
+    }
+    @media (max-width: 980px){
+      .hero-grid,.content{grid-template-columns:1fr}
+    }
+    @media (max-width: 640px){
+      .manual-actions-inner{width:min(calc(100% - 20px), var(--max)); padding:10px 0}
+      .home-btn{width:100%; justify-content:center}
+      .wrap{width:min(calc(100% - 20px), var(--max)); padding-top:18px}
+      .hero,.section-head,.content{padding-left:16px; padding-right:16px}
+      .section-head{padding-top:20px}
+      .content{padding-bottom:18px}
+      .section-head h2{font-size:23px}
+      h1{font-size:30px}
+    }
+  </style>
+</head>
+<body>
+  <div class="manual-actions">
+    <div class="manual-actions-inner">
+      <button type="button" class="home-btn secondary" onclick="goBackToHome()">← 戻る</button>
+      <a class="home-btn" href="dashboard.html">🏠 ホームへ戻る</a>
+    </div>
+  </div>
+
+  <div class="wrap" id="top">
+    <header class="hero">
+      <div class="eyebrow">📘 DROP OFF Webマニュアル</div>
+      <h1>画面を見ながら進められる、実務寄りの操作ガイド</h1>
+      <p class="lead">
+        DROP OFF の基本操作を、今の画面構成に合わせて整理しています。PDFではなくブラウザでそのまま見られます。
+        新規登録直後の流れから、予定表、実際の送り、自動配車結果、設定までを順番に確認できます。
+      </p>
+
+      <div class="hero-grid">
+        <div class="mini-card">
+          <h3>最初に見るポイント</h3>
+          <ul>
+            <li>新規登録直後は、ホームの「新規で作る」から開始します。</li>
+            <li>起点を決めると、距離計算・地図・配車の基準が揃います。</li>
+            <li>実際の送りは「予定から追加」と「直接入力」のどちらでも運用できます。</li>
+          </ul>
+        </div>
+        <div class="mini-card">
+          <h3>このマニュアルについて</h3>
+          <ul>
+            <li>画像は代表例です。細かな文言や制限は本文を優先してください。</li>
+            <li>個人情報にあたる箇所は一部ぼかしています。</li>
+            <li>現在の運用に合わせて整理しています。</li>
+          </ul>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#sec-01">① 新規登録直後ホーム</a>
+        <a href="#sec-02">② 通常ホーム</a>
+        <a href="#sec-03">③ 起点管理</a>
+        <a href="#sec-04">④ 車両管理</a>
+        <a href="#sec-05">⑤ 送り先管理</a>
+        <a href="#sec-06">⑥ 予定表</a>
+        <a href="#sec-07">⑦ 実際の送り</a>
+        <a href="#sec-08">⑧ 自動配車結果</a>
+        <a href="#sec-09">⑨ 設定</a>
+      </nav>
+
+      <div class="note">
+        迷ったら、まずは <strong>起点 → 車両 → 送り先 → 予定表 or 実際の送り</strong> の順で見ると流れがつかみやすいです。
+      </div>
+    </header>
+
+    <section class="screen" id="sec-01">
+      <div class="section-head">
+        <div class="section-num">① 新規登録で最初に出るホーム画面</div>
+        <h2>最初の一歩は、ホームの「新規で作る」から</h2>
+        <p>新しいチームを作成した直後は、必要な基本データがまだ空です。ここで初期登録を進めます。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>この画面でやること</h3>
+          <ol>
+            <li>まず <strong>起点を作る</strong> を押して、基準になる起点を登録します。</li>
+            <li>次に <strong>車両を作る</strong> で配車に使う車両を登録します。</li>
+            <li>最後に <strong>送り先を作る</strong> で送り先を登録します。</li>
+          </ol>
+          <div class="badge-row">
+            <span class="badge">起点0件なら最優先</span>
+            <span class="badge">初期構築の入口</span>
+            <span class="badge">他画面へ自然につながる</span>
+          </div>
+        </div>
+        <div class="shot">
+          <img src="manual-img/01_home_onboarding.webp" alt="新規登録直後のホーム画面" />
+          <div class="caption">新規登録直後は、ホーム中央の「新規で作る」カードが案内役になります。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-02">
+      <div class="section-head">
+        <div class="section-num">② 通常のホーム画面</div>
+        <h2>今日の状況と月間実績を一目で確認</h2>
+        <p>日々の入口になる画面です。今日の件数と、車両ごとの月間距離・出勤日数・1日平均を確認できます。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>見方のポイント</h3>
+          <ul>
+            <li><strong>今日の状況</strong> では、人数・車両数・Plan・Actual・完了・キャンセル件数を確認できます。</li>
+            <li><strong>当日運用へ / 予定表へ / 実際の送りへ</strong> の3つが、日常操作の主な入口です。</li>
+            <li><strong>月間（車両別）</strong> では、各車両の月間距離・出勤日数・1日平均を確認できます。</li>
+            <li><strong>確定（月間へ反映）</strong> を使うと、自動配車結果の日次距離が月間集計へ累積されます。</li>
+            <li><strong>free / Paid</strong> で一部機能制御があります。</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/02_home_normal.webp" alt="通常のホーム画面" />
+          <div class="caption">基本データが入ると、ホームは日々の運用ダッシュボードに切り替わります。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-03">
+      <div class="section-head">
+        <div class="section-num">③ 起点管理画面</div>
+        <h2>距離計算と配車の土台になる「起点」を管理</h2>
+        <p>使う起点を選ぶと、その後の距離計算・地図・配車の基準が切り替わります。保存できる起点数は free で1件、Paid で5件です。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>操作の流れ</h3>
+          <ol>
+            <li><strong>保存枠</strong> を選びます。</li>
+            <li><strong>起点名</strong> と <strong>住所</strong> を入力します。</li>
+            <li><strong>APIで座標取得</strong> または <strong>GoogleMapで開く</strong> を使って位置を確認します。</li>
+            <li><strong>この枠に保存</strong> で保存します。</li>
+            <li>保存後は一覧の <strong>使う</strong> を押して、現在の起点に切り替えます。</li>
+          </ol>
+          <div class="badge-row">
+            <span class="badge">free は1件</span>
+            <span class="badge">Paid は5件</span>
+            <span class="badge">一覧から切替可能</span>
+          </div>
+        </div>
+        <div class="shot">
+          <img src="manual-img/03_origin_settings.webp" alt="起点管理画面" />
+          <div class="caption">住所から座標取得し、保存枠ごとに起点を管理します。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-04">
+      <div class="section-head">
+        <div class="section-num">④ 車両管理画面</div>
+        <h2>車両、ドライバー、帰宅方向、定員をまとめて管理</h2>
+        <p>自動配車で使う車両情報を登録する画面です。配車後の月間距離や出勤日数の確認にも使います。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>登録項目</h3>
+          <ul>
+            <li><strong>車両ID</strong> と <strong>ドライバー名</strong> は基本情報です。</li>
+            <li><strong>担当方面</strong> と <strong>帰宅方面</strong> は配車判断に使います。</li>
+            <li><strong>帰宅座標貼り付け</strong> を入れると、ラスト便や帰宅方向の判定に使えます。</li>
+            <li><strong>乗車可能人数</strong> は同乗可能人数の上限です。</li>
+            <li>下の一覧では、月間距離・出勤日数・1日平均も確認できます。</li>
+          </ul>
+          <h3 style="margin-top:14px;">便利機能</h3>
+          <ul>
+            <li><strong>インポート</strong> と <strong>車両CSV</strong> は Paid で利用できます。</li>
+            <li>下部の <strong>走行実績エクスポート</strong> では、ドライバー別・日別の出力ができます。</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/04_vehicle.webp" alt="車両管理画面" />
+          <div class="caption">車両登録と月間実績の確認が1画面にまとまっています。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-05">
+      <div class="section-head">
+        <div class="section-num">⑤ 送り先管理画面</div>
+        <h2>送り先候補を事前登録して、予定や実績に流し込む</h2>
+        <p>名前、住所、座標、メモ、電話などを登録できます。距離と時間は、現在の起点を基準に都度再計算されます。新規の空フォームでは距離と時間は表示されません。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>基本操作</h3>
+          <ul>
+            <li><strong>氏名</strong> と <strong>住所</strong> を入力します。</li>
+            <li>座標取得は <strong>API座標取得</strong>、Enter、手動座標貼り付けに対応しています。</li>
+            <li><strong>方面</strong> は住所ベースの自動判定です。</li>
+            <li><strong>ルート</strong> で地図確認、<strong>インポート</strong> と <strong>送り先CSV</strong> は Paid で利用できます。</li>
+            <li><strong>送り先検索</strong> タブから、既存データの絞り込みもできます。</li>
+            <li>free の API座標取得には日次上限があり、Paid は制限なしです。</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/05_cast.webp" alt="送り先管理画面" />
+          <div class="caption">送り先は事前登録しておくと、予定表や実際の送りで選びやすくなります。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-06">
+      <div class="section-head">
+        <div class="section-num">⑥ 予定表</div>
+        <h2>予定を先に組んでおき、時間帯ごとに一覧で管理</h2>
+        <p>予定表は、当日の計画を先に作っておく画面です。あとから実際の送りへ引き継げます。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>使い方</h3>
+          <ol>
+            <li><strong>日付</strong> を選びます。</li>
+            <li><strong>送り先選択</strong> で候補から選ぶか、必要に応じて直接入力します。</li>
+            <li><strong>時間</strong> を選び、必要なら <strong>距離上書き</strong> を入れます。</li>
+            <li><strong>方面</strong> と <strong>メモ</strong> を確認して <strong>追加/更新</strong> します。</li>
+          </ol>
+          <h3 style="margin-top:14px;">この画面でできること</h3>
+          <ul>
+            <li><strong>予定をエクスポート</strong> / <strong>予定をインポート</strong> は Paid で利用できます。</li>
+            <li><strong>予定を全消去</strong></li>
+            <li><strong>時間帯 × 方面一覧</strong> で見やすく確認</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/06_schedule.webp" alt="予定表画面" />
+          <div class="caption">予定表は、当日の配車前に全体像を組み立てるための下ごしらえ画面です。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-07">
+      <div class="section-head">
+        <div class="section-num">⑦ 実際の送り</div>
+        <h2>予定からでも、直接入力でも、実績側に登録できる</h2>
+        <p>実運用で使う画面です。予定表から取り込む方法と、その場で直接登録する方法の両方に対応しています。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>登録方法は2つあります</h3>
+          <ul>
+            <li><strong>予定から追加</strong><br />予定表で作成したデータを引き継いで実績化します。</li>
+            <li><strong>直接入力</strong><br />送り先選択からその場で登録します。予定がない突発対応でも使えます。</li>
+          </ul>
+          <h3 style="margin-top:14px;">補足</h3>
+          <ul>
+            <li><strong>状態</strong> は 未完了 / 完了 / キャンセル で管理します。</li>
+            <li><strong>表をコピー</strong> で一覧をコピーできます。</li>
+            <li>下の <strong>時間帯 × 方面一覧</strong> では、色分けで状態が分かります。</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/07_actual.webp" alt="実際の送り画面" />
+          <div class="caption">予定を実績に変える入口にも、その場で直接登録する入口にもなります。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-08">
+      <div class="section-head">
+        <div class="section-num">⑧ 自動配車結果</div>
+        <h2>車両ごとの結果、地図、コピー、LINE送信をまとめて確認</h2>
+        <p>自動配車を実行したあとに表示される結果画面です。車両別の配車順、累計距離、戻り時間、次便可能時刻などを確認できます。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>見どころ</h3>
+          <ul>
+            <li><strong>車両稼働タイムライン</strong> で、戻り何分後・次便可能時刻・回転時間・累計距離/件数を確認できます。</li>
+            <li><strong>全配車 俯瞰マップ</strong> では、車両ごとの線やピンを切り替えられます。</li>
+            <li>各車両カードでは、<strong>人数・累計距離・累計時間・累計件数</strong> を確認できます。</li>
+            <li><strong>結果をコピー</strong> や <strong>LINE送信</strong> で、ドライバー連携にも使えます。</li>
+            <li><strong>確定（月間へ反映）</strong> を押すと、当日の結果が日次実績へ保存され、同日2回目以降も累積されます。</li>
+          </ul>
+        </div>
+        <div class="shot">
+          <img src="manual-img/08_dispatch_result.webp" alt="自動配車結果画面" />
+          <div class="caption">配車の全体像と、各車両の詳細を1つの画面で確認できます。</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="sec-09">
+      <div class="section-head">
+        <div class="section-num">⑨ 設定</div>
+        <h2>ログイン情報、権限、招待、起点管理を確認</h2>
+        <p>設定では、現在のログイン情報と権限確認、ユーザー招待、所属チーム情報の確認などを行えます。</p>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <h3>主な項目</h3>
+          <ul>
+            <li><strong>ログインユーザー</strong> と <strong>現在の権限</strong> を確認できます。</li>
+            <li><strong>ユーザー管理</strong> では一覧の更新、権限変更、状態変更、削除ができます。</li>
+            <li><strong>ユーザー招待</strong> では、招待先メールアドレス、表示名、招待権限、所属チームを指定します。</li>
+            <li><strong>現在のプラン</strong> は free / Paid で表示されます。</li>
+            <li>CSVや GoogleMap API を使う機能は、プランに応じて利用可否が変わります。</li>
+          </ul>
+          <div class="note" style="margin-top:14px;">
+            掲載画像では、ログイン情報など個人情報にあたる部分を一部ぼかしています。
+          </div>
+        </div>
+        <div class="shot">
+          <img src="manual-img/09_settings.webp" alt="設定画面" />
+          <div class="caption">設定ではユーザー管理と招待、起点の確認や更新を行います。</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="top-link"><a href="#top">▲ 先頭へ戻る</a></div>
+    <footer>DROP OFF Web Manual</footer>
+  </div>
+  <script>
+    function goBackToHome() {
+      try {
+        if (window.history.length > 1) {
+          window.history.back();
+          return;
+        }
+      } catch (e) {}
+      window.location.href = 'dashboard.html';
+    }
+  </script>
+</body>
+</html>

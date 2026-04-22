@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROP OFF | PayPay支払い確認</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <main class="container" style="max-width:720px; margin:40px auto;">
+      <section class="card">
+        <h1 style="margin-top:0;">PayPay支払い確認</h1>
+        <p id="paypayReturnStatusText" class="soft-text">支払い確認中です...</p>
+        <p id="paypayReturnSubText" class="soft-text" style="margin-top:8px;">数秒かかる場合があります。確認後に設定画面へ戻ります。</p>
+        <div class="action-row" style="margin-top:18px;">
+          <button id="backToDashboardBtn" class="btn primary" type="button">設定へ戻る</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="paypay-return.js?v=paypay-ui1"></script>
+</body>
+</html>
