@@ -4471,11 +4471,11 @@ function renderCastsTable() {
     const tr = document.createElement("tr");
     const actionHtml = isReadonlyUser
       ? `
-        <button class="btn ghost cast-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+        <button class="btn ghost cast-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
       `
       : `
         <button class="btn ghost cast-edit-btn" data-id="${cast.id}">編集</button>
-        <button class="btn ghost cast-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+        <button class="btn ghost cast-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
         <button class="btn danger cast-delete-btn" data-id="${cast.id}">削除</button>
       `;
     tr.innerHTML = `
@@ -4510,7 +4510,14 @@ function renderCastsTable() {
   }
 
   els.castsTableBody.querySelectorAll(".cast-route-btn").forEach(btn => {
-    btn.addEventListener("click", () => openGoogleMap(btn.dataset.address || ""));
+    btn.addEventListener("click", () => {
+      const cast = allCastsCache.find(x => sameDispatchEntityId(x.id || x.cast_id, btn.dataset.id));
+      if (cast) {
+        openGoogleMap(cast.address || "", cast.latitude, cast.longitude);
+        return;
+      }
+      openGoogleMap(btn.dataset.address || "");
+    });
   });
 }
 
@@ -4768,7 +4775,7 @@ function renderCastSearchResults() {
         <td>${escapeHtml(cast.memo || "")}</td>
         <td class="actions-cell">
           <button class="btn ghost cast-search-map-btn" data-id="${cast.id}">地図</button>
-          <button class="btn ghost cast-search-route-btn" data-address="${escapeHtml(cast.address || "")}">ルート</button>
+          <button class="btn ghost cast-search-route-btn" data-id="${escapeHtml(String(cast.id || cast.cast_id || ""))}" data-address="${escapeHtml(cast.address || "")}">ルート</button>
           ${isReadonlyUser ? '' : `<button class="btn ghost cast-search-edit-btn" data-id="${cast.id}">編集へ</button>`}
         </td>
       </tr>
@@ -4787,7 +4794,14 @@ function renderCastSearchResults() {
   });
 
   els.castSearchResultWrap.querySelectorAll(".cast-search-route-btn").forEach(btn => {
-    btn.addEventListener("click", () => openGoogleMap(btn.dataset.address || ""));
+    btn.addEventListener("click", () => {
+      const cast = allCastsCache.find(x => sameDispatchEntityId(x.id || x.cast_id, btn.dataset.id));
+      if (cast) {
+        openGoogleMap(cast.address || "", cast.latitude, cast.longitude);
+        return;
+      }
+      openGoogleMap(btn.dataset.address || "");
+    });
   });
 
   if (!isReadonlyUser) {
