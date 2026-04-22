@@ -3183,10 +3183,15 @@ function activateTab(tabId) {
   if (safeTabId === 'castsTab' || safeTabId === 'castSearchTab') {
     if (typeof loadCasts === 'function') {
       Promise.resolve(loadCasts())
-        .then(() => { syncCastBlankMetricsUi(); return refreshLiveOriginMetricsForDisplay(safeTabId); })
+        .then(() => {
+          syncCastBlankMetricsUi();
+          try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
+          return refreshLiveOriginMetricsForDisplay(safeTabId);
+        })
         .catch(err => console.warn('cast tab origin refresh failed:', err));
     } else {
       syncCastBlankMetricsUi();
+      try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
       Promise.resolve(refreshLiveOriginMetricsForDisplay(safeTabId)).catch(err => console.warn('cast tab live recalc failed:', err));
     }
   }
@@ -3740,6 +3745,7 @@ async function fetchOriginLatLngFromAddress() {
     alert('住所から座標を取得できませんでした。');
   } finally {
     if (button) button.disabled = false;
+    try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
   }
 }
 

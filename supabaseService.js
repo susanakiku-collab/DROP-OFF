@@ -77,6 +77,88 @@ for (const logicalName of DROP_OFF_OPTIONAL_DISABLED_TABLES) {
   markKnownMissingTable(logicalName);
 }
 
+
+
+const DROP_OFF_GOOGLE_API_DAILY_USAGE_STORAGE_KEY = "dropoff_google_api_daily_usage_v1";
+
+function getLocalUsageDateKey(value) {
+  const raw = String(value || "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function loadDropOffGoogleApiDailyUsageCache() {
+  try {
+    const raw = localStorage.getItem(DROP_OFF_GOOGLE_API_DAILY_USAGE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveDropOffGoogleApiDailyUsageCache(cache) {
+  try {
+    localStorage.setItem(DROP_OFF_GOOGLE_API_DAILY_USAGE_STORAGE_KEY, JSON.stringify(cache || {}));
+  } catch (_) {}
+}
+
+function buildDropOffGoogleApiDailyUsageCacheKey(teamId, featureKey, usageDate) {
+  return [String(teamId || "").trim(), String(featureKey || "").trim(), getLocalUsageDateKey(usageDate)].join("::");
+}
+
+function normalizeSharedGoogleApiUsageRow(row = {}, teamId = "", featureKey = "", usageDate = "") {
+  return {
+    team_id: String(row?.team_id || teamId || "").trim(),
+    feature_key: String(row?.feature_key || featureKey || "").trim(),
+    usage_date: getLocalUsageDateKey(row?.usage_date || usageDate),
+    used_count: Math.max(0, Number(row?.used_count || 0)),
+    updated_at: row?.updated_at || new Date().toISOString()
+  };
+}
+
+async function getSharedGoogleApiUsageDaily(teamId, featureKey, usageDate) {
+  const safeTeamId = String(teamId || "").trim();
+  const safeFeatureKey = String(featureKey || "").trim();
+  const safeUsageDate = getLocalUsageDateKey(usageDate);
+  if (!safeTeamId || !safeFeatureKey) {
+    return { data: normalizeSharedGoogleApiUsageRow({}, safeTeamId, safeFeatureKey, safeUsageDate), error: null };
+  }
+
+  const cache = loadDropOffGoogleApiDailyUsageCache();
+  const key = buildDropOffGoogleApiDailyUsageCacheKey(safeTeamId, safeFeatureKey, safeUsageDate);
+  return {
+    data: normalizeSharedGoogleApiUsageRow(cache[key] || {}, safeTeamId, safeFeatureKey, safeUsageDate),
+    error: null
+  };
+}
+
+async function incrementSharedGoogleApiUsageDaily(teamId, featureKey, amount = 1, usageDate) {
+  const safeTeamId = String(teamId || "").trim();
+  const safeFeatureKey = String(featureKey || "").trim();
+  const safeUsageDate = getLocalUsageDateKey(usageDate);
+  const delta = Math.max(0, Number(amount || 0));
+  if (!safeTeamId || !safeFeatureKey) {
+    return { data: normalizeSharedGoogleApiUsageRow({}, safeTeamId, safeFeatureKey, safeUsageDate), error: null };
+  }
+
+  const cache = loadDropOffGoogleApiDailyUsageCache();
+  const key = buildDropOffGoogleApiDailyUsageCacheKey(safeTeamId, safeFeatureKey, safeUsageDate);
+  const current = normalizeSharedGoogleApiUsageRow(cache[key] || {}, safeTeamId, safeFeatureKey, safeUsageDate);
+  const next = normalizeSharedGoogleApiUsageRow({
+    ...current,
+    used_count: Math.max(0, Number(current.used_count || 0) + delta),
+    updated_at: new Date().toISOString()
+  }, safeTeamId, safeFeatureKey, safeUsageDate);
+  cache[key] = next;
+  saveDropOffGoogleApiDailyUsageCache(cache);
+  return { data: next, error: null };
+}
+
 function compareValuesForSort(a, b) {
   const aEmpty = a === null || a === undefined || a === "";
   const bEmpty = b === null || b === undefined || b === "";
@@ -3570,6 +3652,8 @@ async function updateTeamPlanForAdmin(teamId, nextPlanType) {
   return { data: normalized, error: null };
 }
 
+window.getSharedGoogleApiUsageDaily = getSharedGoogleApiUsageDaily;
+window.incrementSharedGoogleApiUsageDaily = incrementSharedGoogleApiUsageDaily;
 window.getTeamPlan = getTeamPlan;
 window.getTeamPlanMemberUsage = getTeamPlanMemberUsage;
 window.getCachedDropOffTeamMeta = getCachedDropOffTeamMeta;
