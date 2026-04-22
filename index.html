@@ -4,24 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DROP OFF | 送りを、もっとスマートに。</title>
-  <meta name="description" content="夜間の送迎・配車を、もっとスマートに。DROP OFF は送り業務を見やすく整理し、AI配車を導入しやすくするホームページです。" />
+  <meta name="description" content="DROP OFFは送り業務のためのクラウド管理アプリです。AI配車、予定表、実際の送りを見やすく整理します。" />
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="home.css" />
 </head>
 <body>
-  <div class="home-shell">
+  <div class="page-shell">
     <header class="site-header">
-      <a href="index.html" class="brand-wrap" aria-label="DROP OFF ホーム">
-        <div class="brand-icon">D</div>
-        <div class="brand-texts">
+      <a class="brand" href="index.html" aria-label="DROP OFF ホーム">
+        <span class="brand-mark">D</span>
+        <span class="brand-copy-wrap">
           <strong>DROP OFF</strong>
-          <span>AI Route &amp; Dispatch System</span>
-        </div>
+          <small>AI Route &amp; Dispatch System</small>
+        </span>
       </a>
 
       <nav class="site-nav" aria-label="メインナビゲーション">
         <a href="#features">機能</a>
-        <a href="#ai-link">AI配車とは？</a>
+        <a href="#about-ai">AI配車とは？</a>
         <a href="#pricing">料金プラン</a>
         <a href="#contact">お問い合わせ</a>
       </nav>
@@ -29,99 +29,70 @@
 
     <main>
       <section class="hero" aria-labelledby="heroTitle">
-        <div class="hero-bg" role="img" aria-label="夜の街で送迎車と人物が立つ背景写真"></div>
-        <div class="hero-shade"></div>
-        <div class="hero-copy">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+
+        <div class="hero-inner">
           <p class="hero-kicker">夜間の送迎・配車を、もっとスマートに</p>
           <h1 id="heroTitle">送りを、<br>もっとスマートに。</h1>
-          <p class="hero-text">AIが最適な送りを考え、<br>すべてを自動で手配します。<br>24時間、安心と信頼の送迎を。</p>
+          <p class="hero-text">
+            AIが最適な送りを考え、<br>
+            すべてを自動で手配します。<br>
+            24時間、安心と信頼の送迎を。
+          </p>
+
           <div class="hero-actions">
-            <a id="heroPrimaryBtn" class="btn btn-primary" href="signup.html">無料で始める</a>
-            <a id="heroSecondaryBtn" class="btn btn-ghost" href="login.html">ログイン</a>
+            <a class="btn btn-primary" href="signup.html">無料で始める</a>
+            <a class="btn btn-ghost" href="login.html">ログイン</a>
           </div>
         </div>
       </section>
 
-      <section class="ai-teaser" id="ai-link">
-        <a href="#ai-details" class="ai-teaser-card">
-          <div class="ai-orb">AI</div>
-          <div class="ai-copy">
+      <section class="teaser" id="about-ai">
+        <a class="teaser-card" href="#about-ai-details">
+          <div class="teaser-icon">AI</div>
+          <div class="teaser-copy">
             <h2>AI配車って何？</h2>
             <p>AIが最適な送りを考え、すべてを自動で手配します。</p>
           </div>
-          <span class="ai-arrow">›</span>
+          <span class="teaser-arrow">›</span>
         </a>
       </section>
 
-      <section class="mini-grid" id="features">
-        <article class="mini-card">
-          <div class="mini-icon">📍</div>
+      <section class="feature-grid" id="features">
+        <article class="feature-card">
+          <div class="feature-icon">📍</div>
           <h3>送り先管理</h3>
           <p>送り先リストを簡単に整理・管理。</p>
-          <span>›</span>
+          <span class="feature-arrow">›</span>
         </article>
-        <article class="mini-card">
-          <div class="mini-icon">🗓️</div>
+
+        <article class="feature-card">
+          <div class="feature-icon">🗓️</div>
           <h3>予定表</h3>
           <p>予定をまとめて管理し、送りの計画を見える化。</p>
-          <span>›</span>
+          <span class="feature-arrow">›</span>
         </article>
-        <article class="mini-card">
-          <div class="mini-icon">🚗</div>
+
+        <article class="feature-card">
+          <div class="feature-icon">🚗</div>
           <h3>実際の送り</h3>
           <p>進行中の状況を確認し、対応もスムーズに。</p>
-          <span>›</span>
+          <span class="feature-arrow">›</span>
         </article>
-        <article class="mini-card">
-          <div class="mini-icon">🤖</div>
+
+        <article class="feature-card">
+          <div class="feature-icon">AI</div>
           <h3>AI自動配車</h3>
           <p>AIが自動で最適化し、コストと時間を削減。</p>
-          <span>›</span>
+          <span class="feature-arrow">›</span>
         </article>
       </section>
 
-      <section id="ai-details" class="hidden-anchor"></section>
-      <section id="pricing" class="hidden-anchor"></section>
-      <section id="contact" class="hidden-anchor"></section>
+      <div id="about-ai-details" hidden></div>
+      <div id="pricing" hidden></div>
+      <div id="contact" hidden></div>
     </main>
   </div>
-
-  <script>
-    (function() {
-      try {
-        var hash = String(window.location.hash || '');
-        var search = String(window.location.search || '');
-        var raw = hash + '&' + search;
-        if (/type=recovery|access_token=|refresh_token=|token_hash=|code=/.test(raw)) {
-          window.location.replace('login.html' + search + hash);
-        }
-      } catch (e) {}
-    })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script>
-    (async function() {
-      try {
-        if (!window.supabase || !window.APP_CONFIG) return;
-        var client = window.supabase.createClient(window.APP_CONFIG.SUPABASE_URL, window.APP_CONFIG.SUPABASE_ANON_KEY);
-        var res = await client.auth.getSession();
-        var hasSession = !!(res && res.data && res.data.session);
-        if (!hasSession) return;
-        var heroPrimary = document.getElementById('heroPrimaryBtn');
-        var heroSecondary = document.getElementById('heroSecondaryBtn');
-        if (heroPrimary) {
-          heroPrimary.href = 'dashboard.html';
-          heroPrimary.textContent = 'ダッシュボードを開く';
-        }
-        if (heroSecondary) {
-          heroSecondary.href = 'dashboard.html';
-          heroSecondary.textContent = 'アプリへ移動';
-        }
-      } catch (e) {
-        console.warn('session detection skipped', e);
-      }
-    })();
-  </script>
 </body>
 </html>
