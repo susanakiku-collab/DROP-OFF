@@ -29,7 +29,7 @@ a{color:inherit}
   background:rgba(3,10,23,.72);backdrop-filter:blur(18px);box-shadow:var(--shadow)
 }
 .brand{display:flex;align-items:center;gap:14px;text-decoration:none}
-.brand-mark{width:50px;height:50px;border-radius:16px;display:grid;place-items:center;font-size:1.9rem;font-weight:800;background:linear-gradient(180deg,var(--blue1),var(--blue2));box-shadow:0 14px 28px rgba(35,87,214,.35)}
+.brand-logo{width:54px;height:54px;display:block;object-fit:contain;border-radius:18px;box-shadow:0 14px 28px rgba(35,87,214,.18);flex:0 0 auto}
 .brand-copy-wrap{display:flex;flex-direction:column;gap:4px}
 .brand-copy-wrap strong{font-size:2rem;line-height:1;letter-spacing:.03em}
 .brand-copy-wrap small{font-size:.95rem;color:var(--muted)}
@@ -64,7 +64,7 @@ a{color:inherit}
 @media (max-width:760px){
   .page-shell{width:min(100%, calc(100% - 18px));margin:10px auto 22px}
   .site-header{padding:14px 16px;border-radius:20px}
-  .brand-mark{width:42px;height:42px;border-radius:14px;font-size:1.6rem}
+  .brand-logo{width:44px;height:44px;border-radius:14px}
   .brand-copy-wrap strong{font-size:1.32rem}
   .brand-copy-wrap small{font-size:.76rem}
   .site-nav{gap:18px;font-size:.92rem}
