@@ -27,6 +27,7 @@ const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
+window.supabaseClient = supabaseClient;
 
 let currentUser = null;
 let currentUserProfile = null;
@@ -62,19 +63,6 @@ const ADMIN_FORCE_TEAM_ID_KEY = 'admin_force_team_id';
 const ADMIN_FORCE_TEAM_NAME_KEY = 'admin_force_team_name';
 const ADMIN_FORCE_PREV_TEAM_ID_KEY = 'admin_force_prev_team_id';
 const ADMIN_FORCE_PREV_TEAM_NAME_KEY = 'admin_force_prev_team_name';
-
-function stripWorkspaceTeamIdFromDashboardUrl() {
-  try {
-    const params = new URLSearchParams(String(window.location?.search || ''));
-    if (!params.has('team_id')) return;
-    params.delete('team_id');
-    const qs = params.toString();
-    const nextUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash || ''}`;
-    window.history.replaceState({}, '', nextUrl);
-  } catch (_) {}
-}
-
-stripWorkspaceTeamIdFromDashboardUrl();
 
 function getAdminForcedTeamId() {
   try {
@@ -329,7 +317,7 @@ function forceSwitchToTeam(teamId, teamName) {
   clearWorkspaceScopedRuntimeCaches();
   persistWorkspaceTeamIdLocally(safeTeamId);
   window.currentWorkspaceTeamId = safeTeamId;
-  window.location.href = 'dashboard.html?platform_admin=1&admin_view=1';
+  window.location.href = 'dashboard.html?platform_admin=1&admin_view=1&team_id=' + encodeURIComponent(safeTeamId);
 }
 
 function getOriginLocalBackupStorageKey() {
@@ -445,6 +433,15 @@ const els = {
   importPlatformTeamBackupInput: document.getElementById("importPlatformTeamBackupInput"),
   deletePlatformTeamBtn: document.getElementById("deletePlatformTeamBtn"),
   platformAdminActionStatusText: document.getElementById("platformAdminActionStatusText"),
+  refreshPlatformAdminAnalyticsBtn: document.getElementById("refreshPlatformAdminAnalyticsBtn"),
+  platformAdminAnalyticsStatusText: document.getElementById("platformAdminAnalyticsStatusText"),
+  platformAdminHomeTodayCount: document.getElementById("platformAdminHomeTodayCount"),
+  platformAdminDashboardTodayCount: document.getElementById("platformAdminDashboardTodayCount"),
+  platformAdminHome30dCount: document.getElementById("platformAdminHome30dCount"),
+  platformAdminDashboard30dCount: document.getElementById("platformAdminDashboard30dCount"),
+  platformAdminHomeChart: document.getElementById("platformAdminHomeChart"),
+  platformAdminDashboardChart: document.getElementById("platformAdminDashboardChart"),
+  platformAdminAnalyticsDailyBody: document.getElementById("platformAdminAnalyticsDailyBody"),
   userManagementSection: document.getElementById("userManagementSection"),
   refreshProfilesBtn: document.getElementById("refreshProfilesBtn"),
   profilesTableWrap: document.getElementById("profilesTableWrap"),
@@ -3196,10 +3193,15 @@ function activateTab(tabId) {
   if (safeTabId === 'castsTab' || safeTabId === 'castSearchTab') {
     if (typeof loadCasts === 'function') {
       Promise.resolve(loadCasts())
-        .then(() => { syncCastBlankMetricsUi(); return refreshLiveOriginMetricsForDisplay(safeTabId); })
+        .then(() => {
+          syncCastBlankMetricsUi();
+          try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
+          return refreshLiveOriginMetricsForDisplay(safeTabId);
+        })
         .catch(err => console.warn('cast tab origin refresh failed:', err));
     } else {
       syncCastBlankMetricsUi();
+      try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
       Promise.resolve(refreshLiveOriginMetricsForDisplay(safeTabId)).catch(err => console.warn('cast tab live recalc failed:', err));
     }
   }
@@ -3753,6 +3755,7 @@ async function fetchOriginLatLngFromAddress() {
     alert('住所から座標を取得できませんでした。');
   } finally {
     if (button) button.disabled = false;
+    try { refreshCastGoogleApiQuotaUi(); } catch (_) {}
   }
 }
 
@@ -8096,10 +8099,10 @@ function getVehicleDailySummary(vehicle, orderedRows) {
   const vehicleId = Number(vehicle?.id || 0);
   const summary = getVehiclePersistentDailyStats(vehicleId, orderedRows);
   const isLastTripDriver = isDriverLastTripChecked(vehicleId);
+  const sendOnlyMinutes = Math.round(getRowsTravelTimeSummary(orderedRows).sendOnlyMinutes);
   const displayTotalKm = (!summary.hasFixedReport && isLastTripDriver)
     ? Number(summary.sendKm || 0)
     : Number(summary.totalKm || 0);
-  const sendOnlyMinutes = Math.round(getRowsTravelTimeSummary(orderedRows).sendOnlyMinutes);
   const displayDriveMinutes = (!summary.hasFixedReport && isLastTripDriver)
     ? sendOnlyMinutes
     : Math.round(Number(summary.driveMinutes || 0));
@@ -8111,6 +8114,61 @@ function getVehicleDailySummary(vehicle, orderedRows) {
     driveMinutes: Number(displayDriveMinutes || 0),
     jobCount: Number(summary.jobCount || 0),
     hasFixedReport: Boolean(summary.hasFixedReport)
+  };
+}
+
+function getVehicleLiveDailySummary(vehicle, orderedRows) {
+  const vehicleId = Number(vehicle?.id || 0);
+  const rows = Array.isArray(orderedRows) ? orderedRows.filter(Boolean) : [];
+  const actualRows = Array.isArray(currentActualsCache)
+    ? currentActualsCache.filter(
+        item =>
+          sameVehicleAssignmentId(item?.vehicle_id, vehicleId) &&
+          normalizeStatus(item?.status) !== "cancel"
+      )
+    : [];
+
+  const baseRows = actualRows.length
+    ? moveManualLastItemsToEnd(
+        sortItemsByNearestRoute(
+          [...actualRows].sort((a, b) => {
+            const ah = Number(a?.actual_hour ?? a?.plan_hour ?? 0);
+            const bh = Number(b?.actual_hour ?? b?.plan_hour ?? 0);
+            if (ah !== bh) return ah - bh;
+            return Number(a?.stop_order || 0) - Number(b?.stop_order || 0);
+          })
+        )
+      )
+    : rows;
+
+  if (!baseRows.length) {
+    return {
+      sendKm: 0,
+      returnKm: 0,
+      totalKm: 0,
+      driveMinutes: 0,
+      jobCount: 0,
+      hasFixedReport: false
+    };
+  }
+
+  const sendKm = Number(calculateRouteDistanceGlobal(baseRows) || 0);
+  const lastRow = baseRows[baseRows.length - 1] || {};
+  const returnKm = Number(lastRow.distance_km || 0);
+  const isLastTripDriver = isDriverLastTripChecked(vehicleId);
+  const totalKm = Number((sendKm + returnKm).toFixed(1));
+  const travelSummary = getRowsTravelTimeSummary(baseRows);
+  const driveMinutes = isLastTripDriver
+    ? Math.round(Number(travelSummary.sendOnlyMinutes || 0))
+    : Math.round(Number(travelSummary.totalMinutes || 0));
+
+  return {
+    sendKm: Number(sendKm.toFixed(1)),
+    returnKm: Number(returnKm.toFixed(1)),
+    totalKm: isLastTripDriver ? Number(sendKm.toFixed(1)) : totalKm,
+    driveMinutes,
+    jobCount: baseRows.length,
+    hasFixedReport: false
   };
 }
 
@@ -9069,7 +9127,7 @@ async function confirmDailyToMonthly() {
         )
       : [];
 
-    const summary = getVehicleDailySummary(vehicle, assignedRows);
+    const summary = getVehicleLiveDailySummary(vehicle, assignedRows);
     const totalKm = Number(summary?.totalKm || 0);
     const tripCount = Number(summary?.jobCount || 0);
     const driveMinutes = Math.round(Number(summary?.driveMinutes || 0));
@@ -10510,6 +10568,22 @@ async function fetchAllRowsWithoutTeamScope(tableName) {
   return rows;
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
+  const safeTimeout = Math.max(3000, Number(timeoutMs || 12000));
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? window.setTimeout(() => controller.abort(), safeTimeout) : null;
+  try {
+    return await fetch(url, { ...(options || {}), signal: controller?.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`通信がタイムアウトしました (${Math.round(safeTimeout / 1000)}秒)`);
+    }
+    throw error;
+  } finally {
+    if (timer) window.clearTimeout(timer);
+  }
+}
+
 async function listAuthUsersViaQuickHandler() {
   const sessionResult = await supabaseClient.auth.getSession();
   const accessToken = String(sessionResult?.data?.session?.access_token || '').trim();
@@ -10517,7 +10591,7 @@ async function listAuthUsersViaQuickHandler() {
     throw new Error('ログインセッションを取得できませんでした。');
   }
 
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/quick-handler`, {
+  const response = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/quick-handler`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -10525,7 +10599,7 @@ async function listAuthUsersViaQuickHandler() {
       apikey: SUPABASE_ANON_KEY
     },
     body: JSON.stringify({ action: 'list' })
-  });
+  }, 12000);
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -10854,7 +10928,9 @@ async function renderPlatformAdminDetail(teamId) {
   setPlatformAdminActionStatus(isCurrentForced ? '強制切替中です。選択中チームに対して、強制切替以外の管理操作を実行できます。' : '選択中チームに対して、強制切替 / 無料有料切替 / バックアップ / 復元 / チーム削除を実行できます。', false);
   renderPlatformAdminMembers(data.members || []);
   bindOrphanCleanupEvents();
-  await loadOrphanCleanupCandidates();
+  Promise.resolve()
+    .then(() => loadOrphanCleanupCandidates())
+    .catch(error => console.error('loadOrphanCleanupCandidates deferred error:', error));
 }
 
 function renderPlatformAdminTeams() {
@@ -10893,6 +10969,82 @@ function renderPlatformAdminTeams() {
   updatePlatformAdminSummaryCards(rows);
 }
 
+
+function formatPlatformAdminAccessDateLabel(dateString) {
+  const value = String(dateString || '').slice(0, 10);
+  if (!value) return '-';
+  return value.slice(5).replace('-', '/');
+}
+
+function renderPlatformAdminAnalyticsDailyTable(seriesHome = [], seriesDashboard = []) {
+  if (!els.platformAdminAnalyticsDailyBody) return;
+  const homeMap = new Map((Array.isArray(seriesHome) ? seriesHome : []).map(row => [String(row?.date || ''), Number(row?.count || 0)]));
+  const dashboardMap = new Map((Array.isArray(seriesDashboard) ? seriesDashboard : []).map(row => [String(row?.date || ''), Number(row?.count || 0)]));
+  const labels = Array.from(new Set([
+    ...homeMap.keys(),
+    ...dashboardMap.keys()
+  ].filter(Boolean))).sort().slice(-7).reverse();
+
+  if (!labels.length) {
+    els.platformAdminAnalyticsDailyBody.innerHTML = '<tr><td colspan="3" class="soft-text">まだアクセスがありません。</td></tr>';
+    return;
+  }
+
+  els.platformAdminAnalyticsDailyBody.innerHTML = labels.map(label => {
+    const homeCount = Number(homeMap.get(label) || 0);
+    const dashboardCount = Number(dashboardMap.get(label) || 0);
+    return `
+      <tr>
+        <td>${escapeHtml(formatPlatformAdminAccessDateLabel(label))}</td>
+        <td>${homeCount}</td>
+        <td>${dashboardCount}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadPlatformAdminAccessAnalytics() {
+  if (!window.isPlatformAdminUser) return;
+  if (!els.platformAdminAnalyticsStatusText) return;
+  if (typeof window.fetchAccessAnalytics !== 'function') {
+    els.platformAdminAnalyticsStatusText.textContent = 'アクセス解析機能を読み込めませんでした。';
+    return;
+  }
+
+  els.platformAdminAnalyticsStatusText.textContent = 'アクセス解析を読み込んでいます...';
+  const { data, error } = await window.fetchAccessAnalytics({ days: 30 });
+  if (error || !data) {
+    const message = typeof window.describeAccessAnalyticsError === 'function'
+      ? window.describeAccessAnalyticsError(error)
+      : (error?.message || 'アクセス解析の読込に失敗しました。');
+    els.platformAdminAnalyticsStatusText.textContent = message;
+    if (els.platformAdminHomeChart) els.platformAdminHomeChart.innerHTML = '<div class="platform-admin-chart-empty">データを表示できません</div>';
+    if (els.platformAdminDashboardChart) els.platformAdminDashboardChart.innerHTML = '<div class="platform-admin-chart-empty">データを表示できません</div>';
+    if (els.platformAdminAnalyticsDailyBody) els.platformAdminAnalyticsDailyBody.innerHTML = '<tr><td colspan="3" class="soft-text">データを表示できません。</td></tr>';
+    return;
+  }
+
+  const totals = data.totals || {};
+  if (els.platformAdminHomeTodayCount) els.platformAdminHomeTodayCount.textContent = String(totals.home_today || 0);
+  if (els.platformAdminDashboardTodayCount) els.platformAdminDashboardTodayCount.textContent = String(totals.dashboard_today || 0);
+  if (els.platformAdminHome30dCount) els.platformAdminHome30dCount.textContent = String(totals.home_30d || 0);
+  if (els.platformAdminDashboard30dCount) els.platformAdminDashboard30dCount.textContent = String(totals.dashboard_30d || 0);
+
+  if (typeof window.renderAccessLineChart === 'function') {
+    window.renderAccessLineChart(els.platformAdminHomeChart, data.daily?.home || [], {
+      color: '#4f85ff',
+      fill: 'rgba(79,133,255,.16)'
+    });
+    window.renderAccessLineChart(els.platformAdminDashboardChart, data.daily?.dashboard || [], {
+      color: '#7be2ab',
+      fill: 'rgba(123,226,171,.16)'
+    });
+  }
+
+  renderPlatformAdminAnalyticsDailyTable(data.daily?.home || [], data.daily?.dashboard || []);
+  els.platformAdminAnalyticsStatusText.textContent = `今日 home ${totals.home_today || 0} / dashboard ${totals.dashboard_today || 0}、直近30日を表示中です。`;
+}
+
 async function loadPlatformAdminTeams() {
   if (!window.isPlatformAdminUser) return;
   const fn = window.getAllTeamsForAdmin;
@@ -10913,11 +11065,18 @@ async function loadPlatformAdminTeams() {
     : (selectedPlatformAdminTeamId && platformAdminTeamsCache.some(row => String(row.id) === String(selectedPlatformAdminTeamId))
       ? selectedPlatformAdminTeamId
       : String(platformAdminTeamsCache[0]?.id || ''));
+
+  const analyticsPromise = Promise.resolve()
+    .then(() => loadPlatformAdminAccessAnalytics())
+    .catch(error => console.error('loadPlatformAdminAccessAnalytics error:', error));
+
   if (targetTeamId) await renderPlatformAdminDetail(targetTeamId);
   else {
     resetPlatformAdminDetailView();
     setPlatformAdminActionStatus('チームを選ぶと、強制切替 / バックアップ / 復元 / チーム削除の詳細が表示されます。', false);
   }
+
+  await analyticsPromise;
 }
 
 async function changePlatformAdminTeamStatus(teamId, nextStatus) {
@@ -11308,6 +11467,7 @@ function setupEvents() {
   bindInvitationTableEvents();
   bindPlatformAdminTableEvents();
   els.refreshPlatformAdminTeamsBtn?.addEventListener('click', loadPlatformAdminTeams);
+  els.refreshPlatformAdminAnalyticsBtn?.addEventListener('click', loadPlatformAdminAccessAnalytics);
   els.platformAdminBackBtn?.addEventListener('click', clearForceTeamMode);
   els.switchPlatformTeamBtn?.addEventListener('click', () => forceSwitchToTeam(els.switchPlatformTeamBtn?.dataset?.teamId || '', els.switchPlatformTeamBtn?.dataset?.teamName || ''));
   els.suspendPlatformTeamBtn?.addEventListener('click', async () => {
@@ -11649,6 +11809,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     syncScheduleRendererDeps();
     await loadHomeAndAll();
+    try {
+      if (typeof window.recordDashboardAccess === 'function') {
+        await window.recordDashboardAccess({
+          userId: currentUser?.id || window.currentUser?.id || null,
+          teamId: await resolveCurrentWorkspaceTeamId()
+        });
+      }
+    } catch (_) {}
     applyBillingReturnStateMessage();
     try {
       const query = new URLSearchParams(String(window.location.search || ''));
