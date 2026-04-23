@@ -7,14 +7,22 @@
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="auth-page">
   <div class="login-card">
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-      <div>
-        <div style="font-size:12px;letter-spacing:.12em;color:#9db2d1;">DROP OFF</div>
-        <h2 id="authTitle" style="margin:6px 0 0;">ログイン</h2>
+    <div class="auth-brand-block">
+      <img src="brand-logo.png" alt="DROP OFF ロゴ" class="auth-brand-logo" />
+      <div class="auth-brand-copy">
+        <div class="auth-brand-name">DROP OFF</div>
+        <div class="auth-brand-subtitle">AI Route &amp; Dispatch System</div>
       </div>
-      <a href="index.html" style="color:#c8d3e5;text-decoration:none;font-size:13px;">トップへ戻る</a>
+    </div>
+
+    <div class="auth-head-row">
+      <div>
+        <h2 id="authTitle" class="auth-title">ログイン</h2>
+        <p class="auth-lead">ワークスペースにログインします。</p>
+      </div>
+      <a href="index.html" class="auth-back-link">トップへ戻る</a>
     </div>
 
     <div id="loginPanel">
