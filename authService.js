@@ -234,6 +234,21 @@ async function getWorkspaceMemberRoleForAuth(teamId, identityIds = [], email = '
   return null;
 }
 
+function stripSensitiveDashboardTeamIdFromUrl() {
+  try {
+    const fileName = String(window.location.pathname || '').split('/').pop() || '';
+    if (!/^(dashboard\.html?)?$/i.test(fileName)) return;
+    const params = new URLSearchParams(String(window.location.search || ''));
+    if (!params.has('team_id')) return;
+    params.delete('team_id');
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
+    window.history.replaceState({}, '', nextUrl);
+  } catch (e) {}
+}
+
+stripSensitiveDashboardTeamIdFromUrl();
+
 function getAdminForcedTeamId() {
   try {
     return String(window.localStorage.getItem('admin_force_team_id') || '').trim() || null;
@@ -243,15 +258,6 @@ function getAdminForcedTeamId() {
 }
 
 async function resolveWorkspaceTeamIdForAuth(user, profile) {
-  const explicit = (() => {
-    try {
-      const query = new URLSearchParams(String(window.location.search || ''));
-      return String(query.get('team_id') || '').trim() || null;
-    } catch (e) {
-      return null;
-    }
-  })();
-
   const isAdmin = !!window.isPlatformAdminUser;
   const forcedTeamId = isAdmin ? getAdminForcedTeamId() : null;
   const identityIds = Array.from(new Set([
@@ -270,7 +276,6 @@ async function resolveWorkspaceTeamIdForAuth(user, profile) {
     getPerUserWorkspaceTeamId(user?.id),
     profile?.current_dropoff_team_id,
     window.currentWorkspaceTeamId,
-    isAdmin ? explicit : null,
     getStoredWorkspaceTeamId()
   ].map(v => String(v || '').trim()).filter(Boolean);
 

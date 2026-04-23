@@ -63,6 +63,19 @@ const ADMIN_FORCE_TEAM_NAME_KEY = 'admin_force_team_name';
 const ADMIN_FORCE_PREV_TEAM_ID_KEY = 'admin_force_prev_team_id';
 const ADMIN_FORCE_PREV_TEAM_NAME_KEY = 'admin_force_prev_team_name';
 
+function stripWorkspaceTeamIdFromDashboardUrl() {
+  try {
+    const params = new URLSearchParams(String(window.location?.search || ''));
+    if (!params.has('team_id')) return;
+    params.delete('team_id');
+    const qs = params.toString();
+    const nextUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash || ''}`;
+    window.history.replaceState({}, '', nextUrl);
+  } catch (_) {}
+}
+
+stripWorkspaceTeamIdFromDashboardUrl();
+
 function getAdminForcedTeamId() {
   try {
     return String(window.localStorage.getItem(ADMIN_FORCE_TEAM_ID_KEY) || '').trim() || null;
@@ -316,7 +329,7 @@ function forceSwitchToTeam(teamId, teamName) {
   clearWorkspaceScopedRuntimeCaches();
   persistWorkspaceTeamIdLocally(safeTeamId);
   window.currentWorkspaceTeamId = safeTeamId;
-  window.location.href = 'dashboard.html?platform_admin=1&admin_view=1&team_id=' + encodeURIComponent(safeTeamId);
+  window.location.href = 'dashboard.html?platform_admin=1&admin_view=1';
 }
 
 function getOriginLocalBackupStorageKey() {
@@ -8101,50 +8114,6 @@ function getVehicleDailySummary(vehicle, orderedRows) {
   };
 }
 
-function getVehicleLiveActualSummary(vehicle, orderedRows) {
-  const vehicleId = Number(vehicle?.id || 0);
-  const rows = Array.isArray(orderedRows) ? orderedRows.filter(Boolean) : [];
-
-  if (!rows.length) {
-    return {
-      sendKm: 0,
-      returnKm: 0,
-      totalKm: 0,
-      driveMinutes: 0,
-      jobCount: 0,
-      hasFixedReport: false
-    };
-  }
-
-  const baseRows = moveManualLastItemsToEnd(
-    sortItemsByNearestRoute(
-      [...rows].sort((a, b) => {
-        const ah = Number(a?.actual_hour ?? a?.plan_hour ?? 0);
-        const bh = Number(b?.actual_hour ?? b?.plan_hour ?? 0);
-        if (ah !== bh) return ah - bh;
-        return Number(a?.stop_order || 0) - Number(b?.stop_order || 0);
-      })
-    )
-  );
-
-  const sendKm = Number(calculateRouteDistanceGlobal(baseRows) || 0);
-  const lastRow = baseRows[baseRows.length - 1] || {};
-  const returnKm = Number(lastRow.distance_km || 0);
-  const totalKm = Number((sendKm + returnKm).toFixed(1));
-  const totalMinutes = Math.round(getRowsTravelTimeSummary(baseRows).totalMinutes);
-  const sendOnlyMinutes = Math.round(getRowsTravelTimeSummary(baseRows).sendOnlyMinutes);
-  const isLastTripDriver = isDriverLastTripChecked(vehicleId);
-
-  return {
-    sendKm: Number(sendKm.toFixed(1)),
-    returnKm: Number(returnKm.toFixed(1)),
-    totalKm: isLastTripDriver ? Number(sendKm.toFixed(1)) : totalKm,
-    driveMinutes: isLastTripDriver ? sendOnlyMinutes : totalMinutes,
-    jobCount: baseRows.length,
-    hasFixedReport: false
-  };
-}
-
 function getVehicleProjectedMonthlyDistance(vehicleId, monthlyMap, orderedRows) {
   const currentMonth = monthlyMap?.get(Number(vehicleId)) || { totalDistance: 0 };
   const todaySummary = getVehicleDailySummary({ id: vehicleId }, orderedRows);
@@ -9100,7 +9069,7 @@ async function confirmDailyToMonthly() {
         )
       : [];
 
-    const summary = getVehicleLiveActualSummary(vehicle, assignedRows);
+    const summary = getVehicleDailySummary(vehicle, assignedRows);
     const totalKm = Number(summary?.totalKm || 0);
     const tripCount = Number(summary?.jobCount || 0);
     const driveMinutes = Math.round(Number(summary?.driveMinutes || 0));

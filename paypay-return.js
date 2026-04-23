@@ -35,10 +35,9 @@ function clearStoredReturnState() {
   } catch (_) {}
 }
 
-function getDashboardUrl(state = '', teamId = '') {
+function getDashboardUrl(state = '') {
   const url = new URL('dashboard.html', window.location.href);
   if (state) url.searchParams.set(BILLING_RETURN_QUERY_KEY, state);
-  if (teamId) url.searchParams.set('team_id', teamId);
   return url.toString();
 }
 
@@ -76,11 +75,11 @@ async function runPayPayReturnCheck() {
     stored?.merchantPaymentId ||
     ''
   ).trim();
-  const teamId = String(params.get('team_id') || stored?.teamId || '').trim();
+  const teamId = String(stored?.teamId || '').trim();
 
   if (backBtn) {
     backBtn.addEventListener('click', () => {
-      window.location.href = getDashboardUrl('', teamId);
+      window.location.href = getDashboardUrl('');
     });
   }
 
@@ -99,7 +98,7 @@ async function runPayPayReturnCheck() {
         clearStoredReturnState();
         setStatus('支払いが完了しました。', '設定画面へ戻ります。', false);
         window.setTimeout(() => {
-          window.location.href = getDashboardUrl('paypay_success', teamId);
+          window.location.href = getDashboardUrl('paypay_success');
         }, 900);
         return;
       }
@@ -107,7 +106,7 @@ async function runPayPayReturnCheck() {
         clearStoredReturnState();
         setStatus('支払いを確認できませんでした。', '支払い状態を確認してから、必要なら再度お試しください。', true);
         window.setTimeout(() => {
-          window.location.href = getDashboardUrl('paypay_failed', teamId);
+          window.location.href = getDashboardUrl('paypay_failed');
         }, 1200);
         return;
       }

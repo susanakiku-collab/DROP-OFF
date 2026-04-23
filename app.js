@@ -122,13 +122,7 @@ async function createWorkspaceAfterConfirmedLogin(user) {
 }
 
 function buildDashboardUrl() {
-  try {
-    const teamId = window.localStorage.getItem('dropoff_workspace_team_id') || window.localStorage.getItem('current_dropoff_team_id') || '';
-    const safeTeamId = String(teamId || '').trim();
-    return safeTeamId ? `dashboard.html?team_id=${encodeURIComponent(safeTeamId)}` : 'dashboard.html';
-  } catch (e) {
-    return 'dashboard.html';
-  }
+  return 'dashboard.html';
 }
 
 function setMessage(message, isError = true) {
@@ -342,8 +336,8 @@ async function handleLogin() {
       const created = await createWorkspaceAfterConfirmedLogin(user);
       if (created?.teamId) {
         nextUrl = created?.onboarding
-          ? `dashboard.html?onboarding=1&team_id=${encodeURIComponent(created.teamId)}`
-          : `dashboard.html?team_id=${encodeURIComponent(created.teamId)}`;
+          ? 'dashboard.html?onboarding=1'
+          : 'dashboard.html';
       }
     } catch (workspaceError) {
       console.error("workspace create after login failed:", workspaceError);
