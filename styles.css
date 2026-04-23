@@ -98,7 +98,7 @@ a { color: inherit; }
   inset: 0;
 }
 .hero-media {
-  background-image: url('home-hero-visual.png');
+  background-image: url('image/home-hero-visual.png');
   background-size: cover;
   background-position: center center;
   transform: scale(1.02);

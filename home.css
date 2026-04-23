@@ -37,7 +37,7 @@ a{color:inherit}
 .site-nav a{text-decoration:none;font-weight:800;font-size:1rem}
 .hero{position:relative;overflow:hidden;min-height:min(78vh,760px);margin-top:18px;border:1px solid var(--line);border-radius:var(--radius-xl);box-shadow:var(--shadow)}
 .hero-bg,.hero-overlay{position:absolute;inset:0}
-.hero-bg{background:url('hero-bg.png') center center / cover no-repeat;transform:scale(1.01)}
+.hero-bg{background:url('image/hero-bg.png') center center / cover no-repeat;transform:scale(1.01)}
 .hero-overlay{background:linear-gradient(90deg, rgba(3,9,20,.78) 0%, rgba(3,9,20,.58) 28%, rgba(3,9,20,.22) 52%, rgba(3,9,20,.08) 100%),linear-gradient(180deg, rgba(3,9,20,.1) 0%, rgba(3,9,20,.42) 100%)}
 .hero-inner{position:relative;z-index:1;max-width:620px;min-height:min(78vh,760px);padding:clamp(40px,6vw,68px);padding-top:clamp(34px,6vw,56px);padding-bottom:clamp(54px,8vw,88px)}
 .hero-kicker{margin:0;color:#d9e4ff;font-weight:700;font-size:clamp(.95rem,1vw,1rem);letter-spacing:.04em;white-space:nowrap;text-shadow:0 8px 18px rgba(0,0,0,.28)}
