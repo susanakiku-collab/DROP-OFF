@@ -2933,3 +2933,101 @@ img, table, input, select, textarea, button{
     flex:1 1 auto;
   }
 }
+
+
+/* =========================================
+   Platform admin access analytics
+   ========================================= */
+.platform-admin-analytics-wrap{
+  margin:16px 0 12px;
+}
+
+.platform-admin-analytics-summary-grid{
+  margin-top:10px;
+}
+
+.platform-admin-analytics-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  margin-top:12px;
+}
+
+.platform-admin-analytics-card{
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+  border-radius:16px;
+  padding:14px;
+}
+
+.platform-admin-analytics-card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.platform-admin-analytics-card-head h3{
+  margin:0;
+  font-size:15px;
+}
+
+.platform-admin-analytics-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+  color:#dbe6f7;
+  font-size:12px;
+  font-weight:700;
+}
+
+.platform-admin-chart{
+  min-height:250px;
+}
+
+.platform-admin-chart-svg{
+  width:100%;
+  height:250px;
+  display:block;
+}
+
+.platform-admin-chart-empty{
+  min-height:220px;
+  display:grid;
+  place-items:center;
+  color:#9fb0ca;
+  font-size:13px;
+  border:1px dashed rgba(255,255,255,.10);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+
+.platform-admin-chart-caption{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+  color:#b8c8e2;
+  font-size:12px;
+}
+
+@media (max-width: 900px){
+  .platform-admin-analytics-grid{
+    grid-template-columns:1fr;
+  }
+
+  .platform-admin-chart{
+    min-height:220px;
+  }
+
+  .platform-admin-chart-svg{
+    height:220px;
+  }
+}

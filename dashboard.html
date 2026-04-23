@@ -990,6 +990,71 @@
             </div>
           </div>
 
+          <div id="platformAdminAnalyticsWrap" class="platform-admin-analytics-wrap">
+            <div class="section-head compact" style="margin-bottom:10px;">
+              <div>
+                <h3 style="margin:0;">アクセス解析</h3>
+                <p class="soft-text" style="margin:4px 0 0 0;">home は未ログインを含む訪問、dashboard はログイン後の訪問を集計します。表示は運営者だけです。</p>
+              </div>
+              <div class="inline-actions">
+                <button id="refreshPlatformAdminAnalyticsBtn" class="btn ghost" type="button">アクセス解析更新</button>
+              </div>
+            </div>
+
+            <p id="platformAdminAnalyticsStatusText" class="soft-text">アクセス解析を読込中です...</p>
+
+            <div class="platform-admin-summary-grid platform-admin-analytics-summary-grid">
+              <div class="platform-admin-summary-card">
+                <div class="platform-admin-summary-label">home 今日</div>
+                <div id="platformAdminHomeTodayCount" class="platform-admin-summary-value">0</div>
+              </div>
+              <div class="platform-admin-summary-card">
+                <div class="platform-admin-summary-label">dashboard 今日</div>
+                <div id="platformAdminDashboardTodayCount" class="platform-admin-summary-value">0</div>
+              </div>
+              <div class="platform-admin-summary-card">
+                <div class="platform-admin-summary-label">home 30日</div>
+                <div id="platformAdminHome30dCount" class="platform-admin-summary-value">0</div>
+              </div>
+              <div class="platform-admin-summary-card">
+                <div class="platform-admin-summary-label">dashboard 30日</div>
+                <div id="platformAdminDashboard30dCount" class="platform-admin-summary-value">0</div>
+              </div>
+            </div>
+
+            <div class="platform-admin-analytics-grid">
+              <div class="platform-admin-analytics-card">
+                <div class="platform-admin-analytics-card-head">
+                  <h3>home 30日推移</h3>
+                  <span class="platform-admin-analytics-chip">公開ページ</span>
+                </div>
+                <div id="platformAdminHomeChart" class="platform-admin-chart"></div>
+              </div>
+              <div class="platform-admin-analytics-card">
+                <div class="platform-admin-analytics-card-head">
+                  <h3>dashboard 30日推移</h3>
+                  <span class="platform-admin-analytics-chip">ログイン後</span>
+                </div>
+                <div id="platformAdminDashboardChart" class="platform-admin-chart"></div>
+              </div>
+            </div>
+
+            <div class="table-wrap" style="margin-top:12px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>日付</th>
+                    <th>home</th>
+                    <th>dashboard</th>
+                  </tr>
+                </thead>
+                <tbody id="platformAdminAnalyticsDailyBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
           <div class="platform-admin-filter-row">
             <label class="platform-admin-filter-field">
               <span>検索</span>
@@ -1195,6 +1260,7 @@
   <script src="simulation.js"></script>
   <script src="lastTrip.js"></script>
   <script src="dispatchCore.js"></script>
+  <script src="accessAnalytics.js?v=access-v1"></script>
   <script src="dashboard.js?v=portalfix4"></script>
 </body>
 </html>
