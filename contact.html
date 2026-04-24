@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>お問い合わせ｜DROP OFF</title>
+  <meta name="description" content="DROP OFFへのお問い合わせ先です。support@dropoff-ai.com までご連絡ください。" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://www.dropoff-ai.com/contact.html" />
+  <meta property="og:site_name" content="DROP OFF" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="お問い合わせ｜DROP OFF" />
+  <meta property="og:description" content="DROP OFFへのお問い合わせ先です。support@dropoff-ai.com までご連絡ください。" />
+  <meta property="og:url" content="https://www.dropoff-ai.com/contact.html" />
+  <meta property="og:image" content="https://www.dropoff-ai.com/image/brand-logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="お問い合わせ｜DROP OFF" />
+  <meta name="twitter:description" content="DROP OFFへのお問い合わせ先です。support@dropoff-ai.com までご連絡ください。" />
+  <meta name="twitter:image" content="https://www.dropoff-ai.com/image/brand-logo.png" />
+  <link rel="icon" type="image/png" href="image/favicon.png" />
+  <link rel="stylesheet" href="home.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="DROP OFF ホーム">
+        <img src="image/brand-logo.png" alt="DROP OFF ロゴ" class="brand-logo" />
+        <span class="brand-copy-wrap">
+          <strong>DROP OFF</strong>
+          <small>AI Route &amp; Dispatch System</small>
+        </span>
+      </a>
+      <a class="back-link" href="index.html">ホームへ戻る</a>
+    </header>
+
+    <main>
+      <section class="legal-hero">
+        <p class="legal-kicker">Contact</p>
+        <h1 class="legal-title">お問い合わせ</h1>
+        <p class="legal-lead">DROP OFFへのお問い合わせは、下記メールアドレスまでご連絡ください。</p>
+      </section>
+
+      <section class="legal-panel">
+        <h2>お問い合わせ先</h2>
+        <table class="legal-table">
+          <tbody>
+            <tr><th>メールアドレス</th><td><strong id="supportEmail">support@dropoff-ai.com</strong></td></tr>
+            <tr><th>運営者</th><td>株式会社SHILUX（株式会社シルクス）</td></tr>
+          </tbody>
+        </table>
+        <p class="legal-note">メールアプリを自動で開かないよう、このページではメールアドレスを表示しています。コピーして普段お使いのメールから送信してください。</p>
+        <button class="btn btn-primary" type="button" onclick="copySupportEmail()">メールアドレスをコピー</button>
+        <p id="copyMessage" class="legal-note" style="display:none;margin-top:14px;">メールアドレスをコピーしました。</p>
+      </section>
+    </main>
+
+    <footer class="site-footer" aria-label="サイト情報">
+      <div class="site-footer-brand">
+        <strong>DROP OFF</strong>
+        <span>送りの配車を、もっとスマートに。</span>
+      </div>
+      <nav class="site-footer-links" aria-label="法務・運営情報">
+        <a href="contact.html">お問い合わせ</a>
+        <a href="operator.html">運営者情報</a>
+        <a href="tokushoho.html">特定商取引法に基づく表記</a>
+        <a href="privacy.html">プライバシーポリシー</a>
+        <a href="terms.html">利用規約</a>
+      </nav>
+    </footer>
+  </div>
+  <script>
+    function copySupportEmail(){
+      const email = 'support@dropoff-ai.com';
+      const message = document.getElementById('copyMessage');
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(email).then(function(){
+          if (message) message.style.display = 'block';
+        }).catch(function(){
+          window.prompt('メールアドレスをコピーしてください', email);
+        });
+        return;
+      }
+      window.prompt('メールアドレスをコピーしてください', email);
+    }
+  </script>
+</body>
+</html>
