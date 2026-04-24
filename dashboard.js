@@ -8117,21 +8117,14 @@ function getVehicleDailySummary(vehicle, orderedRows) {
   };
 }
 
-function getVehicleLiveDailySummary(vehicle, orderedRows) {
+function getVehicleLiveDailySummaryFromRows(vehicle, orderedRows) {
   const vehicleId = Number(vehicle?.id || 0);
   const rows = Array.isArray(orderedRows) ? orderedRows.filter(Boolean) : [];
-  const actualRows = Array.isArray(currentActualsCache)
-    ? currentActualsCache.filter(
-        item =>
-          sameVehicleAssignmentId(item?.vehicle_id, vehicleId) &&
-          normalizeStatus(item?.status) !== "cancel"
-      )
-    : [];
 
-  const baseRows = actualRows.length
+  const baseRows = rows.length
     ? moveManualLastItemsToEnd(
         sortItemsByNearestRoute(
-          [...actualRows].sort((a, b) => {
+          [...rows].sort((a, b) => {
             const ah = Number(a?.actual_hour ?? a?.plan_hour ?? 0);
             const bh = Number(b?.actual_hour ?? b?.plan_hour ?? 0);
             if (ah !== bh) return ah - bh;
@@ -8139,7 +8132,7 @@ function getVehicleLiveDailySummary(vehicle, orderedRows) {
           })
         )
       )
-    : rows;
+    : [];
 
   if (!baseRows.length) {
     return {
@@ -8170,6 +8163,23 @@ function getVehicleLiveDailySummary(vehicle, orderedRows) {
     jobCount: baseRows.length,
     hasFixedReport: false
   };
+}
+
+function getVehicleLiveDailySummary(vehicle, orderedRows) {
+  const vehicleId = Number(vehicle?.id || 0);
+  const actualRows = Array.isArray(currentActualsCache)
+    ? currentActualsCache.filter(
+        item =>
+          sameVehicleAssignmentId(item?.vehicle_id, vehicleId) &&
+          normalizeStatus(item?.status) !== "cancel"
+      )
+    : [];
+
+  if (actualRows.length) {
+    return getVehicleLiveDailySummaryFromRows(vehicle, actualRows);
+  }
+
+  return getVehicleLiveDailySummaryFromRows(vehicle, orderedRows);
 }
 
 function getVehicleProjectedMonthlyDistance(vehicleId, monthlyMap, orderedRows) {
@@ -8384,6 +8394,7 @@ function buildLineVehicleBlock(vehicle, orderedRows) {
   const driverName = getVehicleDisplayName(vehicle);
   const lineId = String(vehicle?.line_id || "").trim();
   const lastTripTag = isDriverLastTripChecked(vehicle?.id) ? " 【ラスト便】" : "";
+  const routeUrl = buildVehicleRouteMapUrl(vehicle, rows);
 
   const header = [lineId, `🚗 ${driverName}${lastTripTag}`].filter(Boolean).join(" ");
   const body = rows.map((row, index) => {
@@ -8397,18 +8408,9 @@ function buildLineVehicleBlock(vehicle, orderedRows) {
     `距離 ${Number(summary?.totalKm || 0).toFixed(1)}km / 時間 ${formatMinutesAsJa(summary?.driveMinutes || 0)}`
   ];
 
-  const pinLinks = rows
-    .map((row, index) => {
-      const pinUrl = buildDispatchItemMapUrl(row);
-      if (!pinUrl) return "";
-      const castName = String(row?.casts?.name || `送り先${index + 1}`).trim() || `送り先${index + 1}`;
-      return `${index + 1}️⃣ ${castName} 📍\n${pinUrl}`;
-    })
-    .filter(Boolean);
-
-  if (pinLinks.length) {
-    footer.push("📍送り先ピン");
-    footer.push(...pinLinks);
+  if (routeUrl) {
+    footer.push("📍ルート");
+    footer.push(routeUrl);
   }
 
   return [header, ...body, ...footer].join("\n");
@@ -8425,9 +8427,10 @@ function buildLineResultText() {
   return cards
     .map(({ vehicle, orderedRows }) => buildLineVehicleBlock(vehicle, orderedRows))
     .filter(Boolean)
-    .join("\n\n\n")
+    .join("\n\n")
     .trim();
 }
+
 
 function getOvernightLooseHourBucket(item) {
   const hour = Number(item?.actual_hour ?? item?.plan_hour ?? 0);
@@ -9103,32 +9106,42 @@ async function resolveWorkspaceTeamIdForDailyRuns() {
   return null;
 }
 
-function mergeDailyRunPayloadWithExistingRow(nextPayload, existingRow) {
-  const nextDistance = Number(nextPayload?.reference_distance_km || 0);
-  const nextTripCount = Number(nextPayload?.trip_count || 0);
-  const nextDriveMinutes = Number(nextPayload?.drive_minutes || 0);
+async function __dropoffFetchFreshActualRowsForDailyReflect(reportDate, workspaceTeamId) {
+  if (!supabaseClient?.from) return [];
 
-  if (!existingRow) {
-    return {
-      ...nextPayload,
-      reference_distance_km: Number(nextDistance.toFixed(1)),
-      trip_count: nextTripCount,
-      drive_minutes: nextDriveMinutes,
-      is_workday: nextPayload?.is_workday !== false
-    };
+  const { data, error } = await supabaseClient
+    .from(getDispatchUnifiedTableName())
+    .select(remapRelationSelect(`
+      *,
+      casts (
+        id,
+        team_id,
+        name,
+        phone,
+        address,
+        area,
+        distance_km,
+        travel_minutes,
+        latitude,
+        longitude,
+        lat,
+        lng
+      )
+    `))
+    .eq("dispatch_kind", "actual")
+    .eq("dispatch_date", reportDate)
+    .order("actual_hour", { ascending: true })
+    .order("stop_order", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error("daily reflect actual fetch error:", error);
+    return [];
   }
 
-  const existingDistance = Number(existingRow?.reference_distance_km || 0);
-  const existingTripCount = Number(existingRow?.trip_count || 0);
-  const existingDriveMinutes = Number(existingRow?.drive_minutes || 0);
-
-  return {
-    ...nextPayload,
-    reference_distance_km: Number(Math.max(existingDistance, nextDistance).toFixed(1)),
-    trip_count: Math.max(existingTripCount, nextTripCount),
-    drive_minutes: Math.max(existingDriveMinutes, nextDriveMinutes),
-    is_workday: existingRow?.is_workday !== false || nextPayload?.is_workday !== false
-  };
+  const scopedRows = filterDispatchRowsByWorkspace(data, workspaceTeamId);
+  const hydratedRows = scopedRows.map(mapUnifiedDispatchRowToActual).map(enrichUnifiedDispatchRowWithCast);
+  return await applyCurrentOriginMetricsToDispatchRows(hydratedRows);
 }
 
 async function confirmDailyToMonthly() {
@@ -9146,36 +9159,85 @@ async function confirmDailyToMonthly() {
     return;
   }
 
+  let freshActualRows = [];
+  try {
+    freshActualRows = await __dropoffFetchFreshActualRowsForDailyReflect(reportDate, workspaceTeamId);
+  } catch (error) {
+    console.error("daily reflect fresh fetch failed:", error);
+  }
+
+  const sourceActualRows = Array.isArray(freshActualRows) && freshActualRows.length
+    ? freshActualRows
+    : (Array.isArray(currentActualsCache) ? currentActualsCache.filter(Boolean) : []);
+
+  const tableName = getVehicleDailyRunsTableName();
+  const cloudVehicleIds = selectedVehicles
+    .map(vehicle => normalizeDispatchEntityId(resolveVehicleCloudRowId(vehicle?.id)))
+    .filter(Boolean);
+
+  const existingByVehicleId = new Map();
+  if (cloudVehicleIds.length) {
+    let existingQuery = supabaseClient
+      .from(tableName)
+      .select('id, team_id, vehicle_id, run_date, reference_distance_km, trip_count, drive_minutes, is_workday')
+      .eq('team_id', workspaceTeamId)
+      .eq('run_date', reportDate)
+      .in('vehicle_id', cloudVehicleIds);
+
+    let existingRes = await existingQuery;
+    if (existingRes.error && typeof isMissingColumnError === 'function' && isMissingColumnError(existingRes.error) && /team_id/i.test(String(existingRes.error?.message || ''))) {
+      existingRes = await supabaseClient
+        .from(tableName)
+        .select('id, vehicle_id, run_date, reference_distance_km, trip_count, drive_minutes, is_workday')
+        .eq('run_date', reportDate)
+        .in('vehicle_id', cloudVehicleIds);
+    }
+
+    if (existingRes.error) {
+      console.error(existingRes.error);
+      alert('日次実績の既存読込に失敗しました: ' + existingRes.error.message);
+      return;
+    }
+
+    (Array.isArray(existingRes.data) ? existingRes.data : []).forEach(row => {
+      const key = normalizeDispatchEntityId(row?.vehicle_id);
+      if (key) existingByVehicleId.set(key, row);
+    });
+  }
+
   const payloads = [];
 
   selectedVehicles.forEach(vehicle => {
     const localVehicleId = Number(vehicle?.id || 0);
     if (!(localVehicleId > 0)) return;
 
-    const cloudVehicleId = resolveVehicleCloudRowId(vehicle?.id);
+    const cloudVehicleId = normalizeDispatchEntityId(resolveVehicleCloudRowId(vehicle?.id));
     if (!cloudVehicleId) return;
 
-    const assignedRows = Array.isArray(currentActualsCache)
-      ? currentActualsCache.filter(item =>
-          sameVehicleAssignmentId(item?.vehicle_id, localVehicleId) &&
-          normalizeStatus(item?.status) !== "cancel"
-        )
-      : [];
+    const assignedRows = sourceActualRows.filter(item =>
+      sameVehicleAssignmentId(item?.vehicle_id, localVehicleId) &&
+      normalizeStatus(item?.status) !== "cancel"
+    );
 
-    const summary = getVehicleLiveDailySummary(vehicle, assignedRows);
-    const totalKm = Number(summary?.totalKm || 0);
-    const tripCount = Number(summary?.jobCount || 0);
-    const driveMinutes = Math.round(Number(summary?.driveMinutes || 0));
+    const summary = getVehicleLiveDailySummaryFromRows(vehicle, assignedRows);
+    const batchKm = Number(summary?.totalKm || 0);
+    const batchTripCount = Number(summary?.jobCount || 0);
+    const batchDriveMinutes = Math.round(Number(summary?.driveMinutes || 0));
 
-    if (!(tripCount > 0 || totalKm > 0 || driveMinutes > 0)) return;
+    if (!(batchTripCount > 0 || batchKm > 0 || batchDriveMinutes > 0)) return;
+
+    const existing = existingByVehicleId.get(cloudVehicleId) || null;
+    const existingKm = Number(existing?.reference_distance_km || 0);
+    const existingTripCount = Number(existing?.trip_count || 0);
+    const existingDriveMinutes = Math.round(Number(existing?.drive_minutes || 0));
 
     payloads.push({
       team_id: workspaceTeamId,
       vehicle_id: cloudVehicleId,
       run_date: reportDate,
-      reference_distance_km: Number(totalKm.toFixed(1)),
-      trip_count: tripCount,
-      drive_minutes: driveMinutes,
+      reference_distance_km: Number((existingKm + batchKm).toFixed(1)),
+      trip_count: existingTripCount + batchTripCount,
+      drive_minutes: existingDriveMinutes + batchDriveMinutes,
       is_workday: true
     });
   });
@@ -9185,45 +9247,9 @@ async function confirmDailyToMonthly() {
     return;
   }
 
-  const tableName = getVehicleDailyRunsTableName();
-  const vehicleIds = [...new Set(payloads.map(row => String(row?.vehicle_id || "").trim()).filter(Boolean))];
-  let mergedPayloads = payloads;
-
-  if (vehicleIds.length) {
-    let existingQuery = supabaseClient
-      .from(tableName)
-      .select("team_id,vehicle_id,run_date,reference_distance_km,trip_count,drive_minutes,is_workday")
-      .eq("team_id", workspaceTeamId)
-      .eq("run_date", reportDate)
-      .in("vehicle_id", vehicleIds);
-
-    let existingRes = await existingQuery;
-    if (existingRes.error && typeof isMissingColumnError === "function" && isMissingColumnError(existingRes.error) && /team_id/i.test(String(existingRes.error?.message || ""))) {
-      existingRes = await supabaseClient
-        .from(tableName)
-        .select("vehicle_id,run_date,reference_distance_km,trip_count,drive_minutes,is_workday")
-        .eq("run_date", reportDate)
-        .in("vehicle_id", vehicleIds);
-    }
-
-    if (existingRes.error) {
-      if (typeof isMissingTableError === "function" && isMissingTableError(existingRes.error)) {
-        console.error(existingRes.error);
-        alert("dropoff_vehicle_daily_runs テーブルが未作成です。先にSQLを実行してください。");
-        return;
-      }
-      console.error(existingRes.error);
-      alert("既存の日次実績確認に失敗しました: " + existingRes.error.message);
-      return;
-    }
-
-    const existingMap = new Map((Array.isArray(existingRes.data) ? existingRes.data : []).map(row => [String(row?.vehicle_id || "").trim(), row]));
-    mergedPayloads = payloads.map(row => mergeDailyRunPayloadWithExistingRow(row, existingMap.get(String(row?.vehicle_id || "").trim())));
-  }
-
   const { error } = await supabaseClient
     .from(tableName)
-    .upsert(mergedPayloads, { onConflict: "team_id,vehicle_id,run_date" });
+    .upsert(payloads, { onConflict: "team_id,vehicle_id,run_date" });
 
   if (error) {
     if (typeof isMissingTableError === "function" && isMissingTableError(error)) {
@@ -9348,15 +9374,6 @@ async function appendDropOffLightHistoryEntry(entry) {
   const entries = readDropOffLightHistoryEntries();
   entries.unshift(safeEntry);
   writeDropOffLightHistoryEntries(entries);
-
-  try {
-    if (typeof window.__DROP_OFF_REFRESH_HISTORY__ === "function") {
-      await window.__DROP_OFF_REFRESH_HISTORY__();
-    }
-  } catch (error) {
-    console.warn("light history refresh failed:", error);
-  }
-
   return safeEntry;
 }
 

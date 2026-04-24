@@ -12,9 +12,13 @@ function renderManualLastVehicleInfo() {
 }
 function clearManualLastVehicle() {
   clearManualLastVehicleState();
+  clearDriverLastTripState();
+  document.querySelectorAll(".driver-last-trip-input").forEach(input => {
+    input.checked = false;
+  });
   renderManualLastVehicleInfo();
   renderDailyDispatchResult();
-  alert("ラスト便車両を解除しました");
+  alert("ラスト便チェックを解除しました");
 }
 
 

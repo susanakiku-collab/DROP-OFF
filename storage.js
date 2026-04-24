@@ -80,6 +80,15 @@ function hasAnyDriverLastTripChecked(dateStr = getCurrentDispatchDateStr()) {
 }
 
 
+function clearDriverLastTripState(dateStr = getCurrentDispatchDateStr()) {
+  try {
+    window.localStorage.removeItem(getDriverLastTripStorageKey(dateStr));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+
 function setDriverLastTripChecked(vehicleId, checked, dateStr = getCurrentDispatchDateStr()) {
   const key = String(Number(vehicleId || 0));
   const state = getDriverLastTripState(dateStr);
