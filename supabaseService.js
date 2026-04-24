@@ -2648,17 +2648,52 @@ async function loadDailyReports(dateStr) {
   if (typeof renderDailyDispatchResult === "function") renderDailyDispatchResult();
 }
 
+const HISTORY_COLLAPSED_COUNT = 10;
+const HISTORY_EXPANDED_COUNT = 30;
+let historyExpanded = false;
+let latestHistoryRowsCache = [];
+
 function renderHistoryEntries(rows = []) {
   if (!els?.historyList) return;
+  const historyMetaEl = document.getElementById("historyMeta");
+  const historyToggleBtn = document.getElementById("historyToggleBtn");
+
+  latestHistoryRowsCache = Array.isArray(rows) ? rows : [];
   els.historyList.innerHTML = "";
 
-  const safeRows = Array.isArray(rows) ? rows : [];
+  const safeRows = latestHistoryRowsCache;
   if (!safeRows.length) {
+    if (historyMetaEl) historyMetaEl.textContent = "0件表示";
+    if (historyToggleBtn) {
+      historyToggleBtn.hidden = true;
+      historyToggleBtn.onclick = null;
+    }
     els.historyList.innerHTML = `<div class="muted">履歴はありません</div>`;
     return;
   }
 
-  safeRows.forEach(row => {
+  const visibleCount = historyExpanded
+    ? Math.min(safeRows.length, HISTORY_EXPANDED_COUNT)
+    : Math.min(safeRows.length, HISTORY_COLLAPSED_COUNT);
+
+  if (historyMetaEl) {
+    const upper = Math.min(safeRows.length, HISTORY_EXPANDED_COUNT);
+    historyMetaEl.textContent = historyExpanded
+      ? `${visibleCount}件表示`
+      : `${visibleCount}件表示 / さらに開くと最大${upper}件`;
+  }
+
+  if (historyToggleBtn) {
+    const canExpand = safeRows.length > HISTORY_COLLAPSED_COUNT;
+    historyToggleBtn.hidden = !canExpand;
+    historyToggleBtn.textContent = historyExpanded ? "閉じる" : "もっと見る";
+    historyToggleBtn.onclick = () => {
+      historyExpanded = !historyExpanded;
+      renderHistoryEntries(latestHistoryRowsCache);
+    };
+  }
+
+  safeRows.slice(0, visibleCount).forEach(row => {
     const div = document.createElement("div");
     div.className = "history-item";
     div.innerHTML = `
@@ -2677,7 +2712,7 @@ async function loadHistory() {
 
   if (typeof lightHistoryGetter === "function") {
     try {
-      const lightRows = await lightHistoryGetter(100);
+      const lightRows = await lightHistoryGetter(HISTORY_EXPANDED_COUNT);
       renderHistoryEntries(lightRows || []);
       return;
     } catch (error) {
@@ -2698,7 +2733,7 @@ async function loadHistory() {
     .from(getTableName("dispatch_history"))
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(HISTORY_EXPANDED_COUNT);
 
   if (error) {
     if (isMissingTableError(error)) {

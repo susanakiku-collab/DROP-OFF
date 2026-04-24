@@ -768,6 +768,22 @@ textarea{
 }
 
 /* history */
+.history-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:0 0 12px;
+}
+
+.history-meta{
+  font-size:12px;
+}
+
+.history-toggle-btn{
+  min-width:110px;
+}
+
 .history-list{
   display:grid;
   gap:10px;
