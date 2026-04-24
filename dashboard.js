@@ -9103,6 +9103,34 @@ async function resolveWorkspaceTeamIdForDailyRuns() {
   return null;
 }
 
+function mergeDailyRunPayloadWithExistingRow(nextPayload, existingRow) {
+  const nextDistance = Number(nextPayload?.reference_distance_km || 0);
+  const nextTripCount = Number(nextPayload?.trip_count || 0);
+  const nextDriveMinutes = Number(nextPayload?.drive_minutes || 0);
+
+  if (!existingRow) {
+    return {
+      ...nextPayload,
+      reference_distance_km: Number(nextDistance.toFixed(1)),
+      trip_count: nextTripCount,
+      drive_minutes: nextDriveMinutes,
+      is_workday: nextPayload?.is_workday !== false
+    };
+  }
+
+  const existingDistance = Number(existingRow?.reference_distance_km || 0);
+  const existingTripCount = Number(existingRow?.trip_count || 0);
+  const existingDriveMinutes = Number(existingRow?.drive_minutes || 0);
+
+  return {
+    ...nextPayload,
+    reference_distance_km: Number(Math.max(existingDistance, nextDistance).toFixed(1)),
+    trip_count: Math.max(existingTripCount, nextTripCount),
+    drive_minutes: Math.max(existingDriveMinutes, nextDriveMinutes),
+    is_workday: existingRow?.is_workday !== false || nextPayload?.is_workday !== false
+  };
+}
+
 async function confirmDailyToMonthly() {
   const reportDate = els.dispatchDate?.value || todayStr();
   const workspaceTeamId = await resolveWorkspaceTeamIdForDailyRuns();
@@ -9157,9 +9185,45 @@ async function confirmDailyToMonthly() {
     return;
   }
 
+  const tableName = getVehicleDailyRunsTableName();
+  const vehicleIds = [...new Set(payloads.map(row => String(row?.vehicle_id || "").trim()).filter(Boolean))];
+  let mergedPayloads = payloads;
+
+  if (vehicleIds.length) {
+    let existingQuery = supabaseClient
+      .from(tableName)
+      .select("team_id,vehicle_id,run_date,reference_distance_km,trip_count,drive_minutes,is_workday")
+      .eq("team_id", workspaceTeamId)
+      .eq("run_date", reportDate)
+      .in("vehicle_id", vehicleIds);
+
+    let existingRes = await existingQuery;
+    if (existingRes.error && typeof isMissingColumnError === "function" && isMissingColumnError(existingRes.error) && /team_id/i.test(String(existingRes.error?.message || ""))) {
+      existingRes = await supabaseClient
+        .from(tableName)
+        .select("vehicle_id,run_date,reference_distance_km,trip_count,drive_minutes,is_workday")
+        .eq("run_date", reportDate)
+        .in("vehicle_id", vehicleIds);
+    }
+
+    if (existingRes.error) {
+      if (typeof isMissingTableError === "function" && isMissingTableError(existingRes.error)) {
+        console.error(existingRes.error);
+        alert("dropoff_vehicle_daily_runs テーブルが未作成です。先にSQLを実行してください。");
+        return;
+      }
+      console.error(existingRes.error);
+      alert("既存の日次実績確認に失敗しました: " + existingRes.error.message);
+      return;
+    }
+
+    const existingMap = new Map((Array.isArray(existingRes.data) ? existingRes.data : []).map(row => [String(row?.vehicle_id || "").trim(), row]));
+    mergedPayloads = payloads.map(row => mergeDailyRunPayloadWithExistingRow(row, existingMap.get(String(row?.vehicle_id || "").trim())));
+  }
+
   const { error } = await supabaseClient
-    .from(getVehicleDailyRunsTableName())
-    .upsert(payloads, { onConflict: "team_id,vehicle_id,run_date" });
+    .from(tableName)
+    .upsert(mergedPayloads, { onConflict: "team_id,vehicle_id,run_date" });
 
   if (error) {
     if (typeof isMissingTableError === "function" && isMissingTableError(error)) {
