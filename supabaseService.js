@@ -2648,11 +2648,52 @@ async function loadDailyReports(dateStr) {
   if (typeof renderDailyDispatchResult === "function") renderDailyDispatchResult();
 }
 
-async function loadHistory() {
-  if (isKnownMissingTable("dispatch_history")) {
-      if (els?.historyList) els.historyList.innerHTML = `<div class="muted">履歴テーブル未設定</div>`;
-      return;
+function renderHistoryEntries(rows = []) {
+  if (!els?.historyList) return;
+  els.historyList.innerHTML = "";
+
+  const safeRows = Array.isArray(rows) ? rows : [];
+  if (!safeRows.length) {
+    els.historyList.innerHTML = `<div class="muted">履歴はありません</div>`;
+    return;
   }
+
+  safeRows.forEach(row => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    div.innerHTML = `
+      <h4>${escapeHtml(row?.action || "")}</h4>
+      <p>${escapeHtml(row?.message || "")}</p>
+      <p class="muted">${escapeHtml(formatDateTimeJa(row?.created_at || ""))}</p>
+    `;
+    els.historyList.appendChild(div);
+  });
+}
+
+async function loadHistory() {
+  const lightHistoryGetter = window.__DROP_OFF_HISTORY_MODE__ === "light"
+    ? window.__DROP_OFF_GET_LIGHT_HISTORY__
+    : null;
+
+  if (typeof lightHistoryGetter === "function") {
+    try {
+      const lightRows = await lightHistoryGetter(100);
+      renderHistoryEntries(lightRows || []);
+      return;
+    } catch (error) {
+      console.error("light history load failed:", error);
+      if (els?.historyList) {
+        els.historyList.innerHTML = `<div class="muted">履歴の読込に失敗しました</div>`;
+      }
+      return;
+    }
+  }
+
+  if (isKnownMissingTable("dispatch_history")) {
+    if (els?.historyList) els.historyList.innerHTML = `<div class="muted">履歴テーブル未設定</div>`;
+    return;
+  }
+
   const { data, error } = await supabaseClient
     .from(getTableName("dispatch_history"))
     .select("*")
@@ -2666,28 +2707,16 @@ async function loadHistory() {
       return;
     }
     console.error(error);
+    if (els?.historyList) {
+      els.historyList.innerHTML = `<div class="muted">履歴の読込に失敗しました</div>`;
+    }
     return;
   }
 
-  if (!els?.historyList) return;
-  els.historyList.innerHTML = "";
-
-  if (!data?.length) {
-    els.historyList.innerHTML = `<div class="muted">履歴はありません</div>`;
-    return;
-  }
-
-  data.forEach(row => {
-    const div = document.createElement("div");
-    div.className = "history-item";
-    div.innerHTML = `
-      <h4>${escapeHtml(row.action)}</h4>
-      <p>${escapeHtml(row.message || "")}</p>
-      <p class="muted">${escapeHtml(formatDateTimeJa(row.created_at))}</p>
-    `;
-    els.historyList.appendChild(div);
-  });
+  renderHistoryEntries(data || []);
 }
+
+window.__DROP_OFF_REFRESH_HISTORY__ = loadHistory;
 
 async function loadHomeAndAll() {
   const dateStr = els?.dispatchDate?.value || todayStr();

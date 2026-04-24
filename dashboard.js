@@ -9277,6 +9277,15 @@ async function appendDropOffLightHistoryEntry(entry) {
   const entries = readDropOffLightHistoryEntries();
   entries.unshift(safeEntry);
   writeDropOffLightHistoryEntries(entries);
+
+  try {
+    if (typeof window.__DROP_OFF_REFRESH_HISTORY__ === "function") {
+      await window.__DROP_OFF_REFRESH_HISTORY__();
+    }
+  } catch (error) {
+    console.warn("light history refresh failed:", error);
+  }
+
   return safeEntry;
 }
 
