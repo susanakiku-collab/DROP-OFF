@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>実際の送り | DROP OFF</title>
+  <meta name="description" content="DROP OFFの実際の送りは、当日送る対象を一覧化し、進行状況を見やすく管理できます。" />
+  <link rel="icon" type="image/png" href="image/favicon.png" />
+  <style>
+    :root {
+      --bg:#040b17;
+      --panel:rgba(7,16,34,.76);
+      --line:rgba(109,140,255,.18);
+      --text:#f5f7ff;
+      --muted:#cad6f0;
+      --blue1:#4f85ff;
+      --blue2:#2357d6;
+      --shadow:0 24px 70px rgba(0,0,0,.38);
+      --radius-xl:28px;
+      --radius-lg:22px;
+    }
+    * { box-sizing:border-box; }
+    html, body { margin:0; padding:0; }
+    body {
+      min-height:100vh;
+      color:var(--text);
+      font-family:"Meiryo","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(74,126,255,.18), transparent 25%),
+        linear-gradient(180deg,#030914 0%,#040b17 100%);
+    }
+    a { color:inherit; text-decoration:none; }
+    .page-shell {
+      width:min(1280px, calc(100% - 28px));
+      margin:18px auto 28px;
+    }
+    .site-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:18px 22px;
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:rgba(3,10,23,.72);
+      backdrop-filter:blur(18px);
+      box-shadow:var(--shadow);
+    }
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+    .brand-logo {
+      width:54px;
+      height:54px;
+      border-radius:18px;
+      object-fit:contain;
+      display:block;
+      box-shadow:0 14px 28px rgba(35,87,214,.18);
+      flex:0 0 auto;
+    }
+    .brand-copy-wrap {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .brand-copy-wrap strong {
+      font-size:2rem;
+      line-height:1;
+      letter-spacing:.08em;
+      font-weight:900;
+      text-transform:uppercase;
+      font-family:"Arial Black","Segoe UI","Meiryo",sans-serif;
+      background:linear-gradient(180deg,#ffffff 0%,#d7e4ff 42%,#79a7ff 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+      text-shadow:0 0 24px rgba(67,123,255,.22),0 10px 26px rgba(0,0,0,.28);
+    }
+    .brand-copy-wrap small {
+      font-size:.95rem;
+      color:var(--muted);
+    }
+    .back-link {
+      padding:10px 16px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.03);
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .hero {
+      position:relative;
+      overflow:hidden;
+      min-height:min(82vh, 860px);
+      margin-top:18px;
+      border:1px solid var(--line);
+      border-radius:var(--radius-xl);
+      box-shadow:var(--shadow);
+      isolation:isolate;
+    }
+    .hero::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:url("assets/jissainookuri.png");
+      background-size:cover;
+      background-position:center center;
+      transform:scale(1.01);
+      z-index:-2;
+    }
+    .hero::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(90deg, rgba(3,9,20,.82) 0%, rgba(3,9,20,.60) 32%, rgba(3,9,20,.22) 62%, rgba(3,9,20,.10) 100%),
+        linear-gradient(180deg, rgba(3,9,20,.08) 0%, rgba(3,9,20,.46) 100%);
+      z-index:-1;
+    }
+    .hero-inner {
+      position:relative;
+      min-height:min(82vh, 860px);
+      padding:clamp(38px,6vw,72px);
+    }
+    .eyebrow {
+      position:absolute;
+      left:clamp(38px,6vw,72px);
+      top:clamp(40px,6vw,60px);
+      margin:0;
+      color:#d9e4ff;
+      font-weight:700;
+      font-size:clamp(.95rem,1vw,1rem);
+      letter-spacing:.04em;
+      white-space:nowrap;
+      text-shadow:0 8px 18px rgba(0,0,0,.28);
+    }
+    .hero-copy {
+      position:absolute;
+      left:clamp(38px,6vw,72px);
+      bottom:clamp(48px,8vw,88px);
+      max-width:min(820px, calc(100% - clamp(90px,14vw,190px)));
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+    }
+    h1 {
+      margin:0 0 14px;
+      font-size:clamp(1.95rem,3.25vw,3.15rem);
+      line-height:1.14;
+      letter-spacing:-.025em;
+      text-shadow:0 12px 28px rgba(0,0,0,.35);
+    }
+    .lead {
+      margin:0;
+      font-size:clamp(1.02rem,1.45vw,1.18rem);
+      line-height:1.85;
+      color:#eef3ff;
+      text-shadow:0 10px 24px rgba(0,0,0,.30);
+      max-width:34em;
+    }
+    .title-line {
+      display:block;
+      white-space:nowrap;
+    }
+    .chips {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:22px;
+    }
+    .chip {
+      display:inline-flex;
+      align-items:center;
+      min-height:40px;
+      padding:0 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      color:#d9e4ff;
+      font-size:.95rem;
+      font-weight:700;
+      backdrop-filter:blur(10px);
+    }
+    .panel {
+      margin-top:22px;
+      padding:24px;
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      background:linear-gradient(180deg, rgba(7,16,34,.86), rgba(7,16,34,.76));
+      box-shadow:var(--shadow);
+    }
+    .panel h2 {
+      margin:0 0 12px;
+      font-size:1.55rem;
+    }
+    .panel p {
+      margin:0;
+      color:var(--muted);
+      line-height:1.85;
+      font-size:1rem;
+    }
+    .feature-list {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:16px;
+      margin:22px 0 0;
+    }
+    .feature-card {
+      padding:22px;
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      background:linear-gradient(180deg, rgba(7,16,34,.86), rgba(6,14,30,.8));
+      box-shadow:var(--shadow);
+    }
+    .feature-card strong {
+      display:block;
+      margin-bottom:10px;
+      color:#fff;
+      font-size:1.08rem;
+    }
+    .feature-card p {
+      margin:0;
+      color:var(--muted);
+      line-height:1.75;
+      font-size:.96rem;
+    }
+    .next-links {
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:14px;
+      margin-top:18px;
+    }
+    .next-links a {
+      min-height:64px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
+      font-weight:800;
+    }
+    @media (max-width:920px) {
+      .feature-list,
+      .next-links { grid-template-columns:1fr; }
+    }
+    @media (max-width:760px) {
+      .page-shell {
+        width:min(100%, calc(100% - 18px));
+        margin:10px auto 22px;
+      }
+      .site-header {
+        padding:14px 16px;
+        border-radius:20px;
+        align-items:flex-start;
+        flex-direction:column;
+      }
+      .brand-logo {
+        width:44px;
+        height:44px;
+        border-radius:14px;
+      }
+      .brand-copy-wrap strong {
+        font-size:1.32rem;
+        letter-spacing:.05em;
+      }
+      .brand-copy-wrap small { font-size:.76rem; }
+      .back-link { width:100%; text-align:center; }
+      .hero { min-height:680px; }
+      .hero::before { background-position:58% center; }
+      .hero::after {
+        background:
+          linear-gradient(180deg, rgba(3,9,20,.44) 0%, rgba(3,9,20,.30) 20%, rgba(3,9,20,.58) 64%, rgba(3,9,20,.84) 100%),
+          linear-gradient(90deg, rgba(3,9,20,.54) 0%, rgba(3,9,20,.20) 52%, rgba(3,9,20,.24) 100%);
+      }
+      .hero-inner {
+        min-height:680px;
+        padding:26px 18px 30px;
+      }
+      .eyebrow {
+        left:18px;
+        top:24px;
+      }
+      .hero-copy {
+        left:18px;
+        bottom:32px;
+        max-width:calc(100% - 36px);
+      }
+      h1 {
+        font-size:clamp(1.7rem,7.4vw,2.35rem);
+        line-height:1.18;
+      }
+      .title-line { white-space:normal; }
+      .lead {
+        font-size:.98rem;
+        line-height:1.8;
+        max-width:100%;
+      }
+      .panel { padding:22px 18px; }
+      .feature-card { padding:20px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="DROP OFF ホーム">
+        <img src="image/brand-logo.png" alt="DROP OFF ロゴ" class="brand-logo" />
+        <span class="brand-copy-wrap">
+          <strong>DROP OFF</strong>
+          <small>AI Route &amp; Dispatch System</small>
+        </span>
+      </a>
+      <a class="back-link" href="index.html">トップへ戻る</a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="actual-deliveryTitle">
+        <div class="hero-inner">
+          <p class="eyebrow">実際の送り</p>
+          <div class="hero-copy">
+            <h1 id="actual-deliveryTitle"><span class="title-line">当日の送りを、ひと目で追える一覧へ</span></h1>
+            <p class="lead">当日実際に送る送り先を一覧で確認し、状態を切り替えながら進行を管理できます。予定から追加して、現場の流れに合わせて使えます。</p>
+            <div class="chips" aria-label="実際の送りのポイント">
+              <span class="chip">当日一覧</span>
+              <span class="chip">状態を管理</span>
+              <span class="chip">共有しやすい</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-list" aria-label="実際の送りの特徴">
+        <article class="feature-card">
+          <strong>情報を一元管理</strong>
+          <p>名前・住所・座標・方面など、送りに必要な情報をまとめて管理できます。</p>
+        </article>
+        <article class="feature-card">
+          <strong>距離と時間を見やすく</strong>
+          <p>現在の起点をもとに、送り先ごとの距離や目安時間を確認しやすく表示します。</p>
+        </article>
+        <article class="feature-card">
+          <strong>予定や配車へつながる</strong>
+          <p>登録した送り先を予定表・実際の送り・AI自動配車へ自然につなげられます。</p>
+        </article>
+      </section>
+
+      <section class="panel">
+        <h2>こんな場面で役立ちます</h2>
+        <p>当日の送り対象を整理したいとき、進行状況をチームで共有したいとき、完了・未完了・キャンセルを見やすく管理したいときに役立ちます。</p>
+      </section>
+
+      <section class="panel">
+        <h2>ほかの機能も見る</h2>
+        <div class="next-links">
+          <a href="destination-management.html"><span>送り先管理</span><span>›</span></a>
+          <a href="schedule.html"><span>予定表</span><span>›</span></a>
+          <a href="ai-dispatch.html"><span>AI自動配車</span><span>›</span></a>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="accessAnalytics.js?v=access-v1"></script>
+  <script>window.recordHomeAccess && window.recordHomeAccess();</script>
+</body>
+</html>
