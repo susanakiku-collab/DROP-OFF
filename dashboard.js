@@ -8384,7 +8384,6 @@ function buildLineVehicleBlock(vehicle, orderedRows) {
   const driverName = getVehicleDisplayName(vehicle);
   const lineId = String(vehicle?.line_id || "").trim();
   const lastTripTag = isDriverLastTripChecked(vehicle?.id) ? " 【ラスト便】" : "";
-  const routeUrl = buildVehicleRouteMapUrl(vehicle, rows);
 
   const header = [lineId, `🚗 ${driverName}${lastTripTag}`].filter(Boolean).join(" ");
   const body = rows.map((row, index) => {
@@ -8398,9 +8397,18 @@ function buildLineVehicleBlock(vehicle, orderedRows) {
     `距離 ${Number(summary?.totalKm || 0).toFixed(1)}km / 時間 ${formatMinutesAsJa(summary?.driveMinutes || 0)}`
   ];
 
-  if (routeUrl) {
-    footer.push("📍ルート");
-    footer.push(routeUrl);
+  const pinLinks = rows
+    .map((row, index) => {
+      const pinUrl = buildDispatchItemMapUrl(row);
+      if (!pinUrl) return "";
+      const castName = String(row?.casts?.name || `送り先${index + 1}`).trim() || `送り先${index + 1}`;
+      return `${index + 1}️⃣ ${castName} 📍\n${pinUrl}`;
+    })
+    .filter(Boolean);
+
+  if (pinLinks.length) {
+    footer.push("📍送り先ピン");
+    footer.push(...pinLinks);
   }
 
   return [header, ...body, ...footer].join("\n");
@@ -8417,10 +8425,9 @@ function buildLineResultText() {
   return cards
     .map(({ vehicle, orderedRows }) => buildLineVehicleBlock(vehicle, orderedRows))
     .filter(Boolean)
-    .join("\n\n")
+    .join("\n\n\n")
     .trim();
 }
-
 
 function getOvernightLooseHourBucket(item) {
   const hour = Number(item?.actual_hour ?? item?.plan_hour ?? 0);
